@@ -292,25 +292,62 @@ if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListene
 // (zustand persist under "cli-proxy-auth": {state:{apiBase, managementKey}}).
 const SALT='cli-proxy-api-webui::secure-storage';
 function xorText(bytes,keyText){const k=new TextEncoder().encode(keyText);const out=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)out[i]=bytes[i]^k[i%k.length];return out}
-function deobfuscate(payload){
-  if(typeof payload!=='string')return null;
-  let legacy=false,body;
-  if(payload.startsWith('enc::v2::'))body=payload.slice(9);
-  else if(payload.startsWith('enc::v1::')){legacy=true;body=payload.slice(9)}
-  else return payload;
-  try{const bin=atob(body);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);
-    return new TextDecoder().decode(xorText(b,legacy?SALT+'|'+location.host+'|'+navigator.userAgent:SALT+'|'+location.host))}catch(e){return null}
+function b64bytes(body){const bin=atob(body);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return b}
+function encOf(payload){if(typeof payload!=='string')return null;
+  if(payload.startsWith('enc::v2::'))return {legacy:false,body:payload.slice(9)};
+  if(payload.startsWith('enc::v1::'))return {legacy:true,body:payload.slice(9)};
+  return null}
+function deobfuscateWith(payload,keyText){const e=encOf(payload);if(!e)return payload;
+  try{return new TextDecoder().decode(xorText(b64bytes(e.body),keyText))}catch(err){return null}}
+function deobfuscate(payload){const e=encOf(payload);if(!e)return payload;
+  return deobfuscateWith(payload,e.legacy?SALT+'|'+location.host+'|'+navigator.userAgent:SALT+'|'+location.host)}
+// The management center keys its storage on the host it was opened at, which
+// is not always this frame's (a proxy, another name or port for the same
+// CPA). Its persisted auth starts {"state":{"apiBase":"<scheme>://<host>...",
+// and every host byte is decoded before the key needs it, so the writer's
+// host can be read back from the data itself.
+function recoverHost(cipher){
+  const salt=new TextEncoder().encode(SALT+'|');const P='{"state":{"apiBase":"';
+  const plain=[];const host=[];let start=-1,ended=false;
+  for(let p=0;p<cipher.length&&p<600;p++){
+    let k;
+    if(p<salt.length)k=salt[p];
+    else{const j=p-salt.length;if(j>=host.length){if(ended)return host;return null}k=host[j]}
+    plain.push(cipher[p]^k);
+    if(p<P.length){if(plain[p]!==P.charCodeAt(p))return null;continue}
+    if(start<0){const t=String.fromCharCode(...plain.slice(P.length));const m=t.indexOf('://');if(m>=0)start=P.length+m+3;continue}
+    if(!ended&&p>=start){const c=plain[p];if(c===47||c===34||c===63||c===35){ended=true;if(host.length&&salt.length+host.length<=p+1)return host}else host.push(c)}
+  }
+  return ended&&host.length?host:null;
+}
+function centerCandidates(raw){
+  const keys=[];const add=h=>{if(h&&!keys.includes(h))keys.push(h)};
+  add(location.host);
+  try{add(window.parent.location.host)}catch(e){}
+  try{add(window.top.location.host)}catch(e){}
+  try{if(document.referrer)add(new URL(document.referrer).host)}catch(e){}
+  const e=encOf(raw);
+  if(e&&!e.legacy){try{const h=recoverHost(b64bytes(e.body));if(h)add(new TextDecoder().decode(new Uint8Array(h)))}catch(err){}}
+  const out=keys.map(h=>(e&&e.legacy)?SALT+'|'+h+'|'+navigator.userAgent:SALT+'|'+h);
+  out.push(SALT);
+  return out;
 }
 function obfuscate(text){const b=xorText(new TextEncoder().encode(text),SALT+'|'+location.host);let s='';b.forEach(x=>s+=String.fromCharCode(x));return 'enc::v2::'+btoa(s)}
 function centerKey(){
-  try{
-    const raw=localStorage.getItem('cli-proxy-auth');
-    if(!raw)return {why:'管理中心没有保存登录信息（登录时未勾选「记住密码」）'};
-    const txt=deobfuscate(raw); if(!txt)return {why:'无法解析管理中心保存的登录信息'};
-    const data=JSON.parse(txt); const st=data&&data.state?data.state:data;
-    if(st&&st.managementKey)return {key:st.managementKey,base:st.apiBase||''};
-    return {why:'管理中心登录时未勾选「记住密码」，管理密钥没有保存在浏览器中'};
-  }catch(e){return {why:'读取管理中心登录信息失败：'+e.message}}
+  let raw=null;
+  try{raw=localStorage.getItem('cli-proxy-auth')}catch(e){}
+  if(!raw)return {why:'管理中心没有保存登录信息（登录时未勾选「记住密码」）'};
+  let lastErr='';
+  const tries=encOf(raw)?centerCandidates(raw):[null];
+  for(const k of tries){
+    try{
+      const txt=k===null?raw:deobfuscateWith(raw,k); if(!txt)continue;
+      const data=JSON.parse(txt); const st=data&&data.state?data.state:data;
+      if(st&&st.managementKey)return {key:st.managementKey,base:st.apiBase||''};
+      if(st&&('apiBase' in st||'rememberPassword' in st))return {why:'管理中心登录时未勾选「记住密码」，管理密钥没有保存在浏览器中'};
+    }catch(e){lastErr=e.message}
+  }
+  return {why:'无法解析管理中心保存的登录信息'+(lastErr?'（'+lastErr+'）':'')};
 }
 function initKey(){
   const c=centerKey();
