@@ -250,8 +250,8 @@ func refusalOf(ch *wb.Channel, site *wb.Site, authID, model string, r *wb.ChatRe
 // the filter's refusal taken out on chat, as magpie's loader) and hands on
 // each SSE frame in the format CPA wants.
 type relay struct {
-	c     *call
-	param any
+	c       *call
+	param   any
 	sawDone bool
 }
 
@@ -350,17 +350,22 @@ func execute(raw []byte) (any, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
 	defer cancel()
+	m := newMeter()
 	res, err := c.fetch(ctx)
 	if err != nil {
+		noteUsage(c, m, false)
 		return nil, err
 	}
 	defer res.Close()
 	var body []byte
 	if isJSONAnswer(res.Header) {
 		body, _ = io.ReadAll(res.Stream)
+		m.first = time.Now()
+		m.seeJSON(body)
 	} else {
 		var events []string
-		if err := c.events(res, func(ev string) error { events = append(events, ev); return nil }); err != nil {
+		if err := c.events(res, func(ev string) error { m.see(ev); events = append(events, ev); return nil }); err != nil {
+			noteUsage(c, m, false)
 			return nil, fail(pluginabi.ErrorCodeStreamTruncated, c.site.Name+"'s answer broke off: "+err.Error(), http.StatusBadGateway)
 		}
 		if c.upstream == fmtClaude {
@@ -373,6 +378,7 @@ func execute(raw []byte) (any, error) {
 		var param any
 		body = sdktranslator.TranslateNonStream(ctx, c.upstream, c.out, c.model, c.req.OriginalRequestOr(), c.body, body, &param)
 	}
+	noteUsage(c, m, true)
 	return pluginapi.ExecutorResponse{Payload: body, Headers: answerHeaders(res.Header, false)}, nil
 }
 
@@ -386,9 +392,11 @@ func executeStream(raw []byte) (any, error) {
 	}
 	streamID := c.req.StreamID
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
+	m := newMeter()
 	res, err := c.fetch(ctx)
 	if err != nil {
 		cancel()
+		noteUsage(c, m, false)
 		return nil, err
 	}
 	if streamID == "" {
@@ -400,12 +408,14 @@ func executeStream(raw []byte) (any, error) {
 		}
 		var chunks []chunk
 		r := &relay{c: c}
-		_ = c.events(res, func(ev string) error {
+		serr := c.events(res, func(ev string) error {
+			m.see(ev)
 			for _, f := range r.frames(ev) {
 				chunks = append(chunks, chunk{Payload: f})
 			}
 			return nil
 		})
+		noteUsage(c, m, serr == nil)
 		for _, f := range r.tail() {
 			chunks = append(chunks, chunk{Payload: f})
 		}
@@ -418,6 +428,9 @@ func executeStream(raw []byte) (any, error) {
 		if isJSONAnswer(res.Header) {
 			// an answer read whole: handed on as one event
 			b, _ := io.ReadAll(res.Stream)
+			m.first = time.Now()
+			m.seeJSON(b)
+			noteUsage(c, m, true)
 			for _, f := range r.frames("data: " + string(bytes.TrimSpace(b))) {
 				if emit(streamID, f) != nil {
 					return
@@ -430,6 +443,7 @@ func executeStream(raw []byte) (any, error) {
 			return
 		}
 		err := c.events(res, func(ev string) error {
+			m.see(ev)
 			for _, f := range r.frames(ev) {
 				if e := emit(streamID, f); e != nil {
 					return e
@@ -437,6 +451,7 @@ func executeStream(raw []byte) (any, error) {
 			}
 			return nil
 		})
+		noteUsage(c, m, err == nil)
 		if err != nil {
 			closeStream(streamID, &pluginabi.Error{Code: pluginabi.ErrorCodeStreamTruncated, Message: c.site.Name + "'s stream broke off: " + err.Error(), HTTPStatus: http.StatusBadGateway})
 			return

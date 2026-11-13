@@ -41,6 +41,9 @@ var routes = []route{
 	{"GET", base + "models", "WorkBuddy: live model list of a build (?build=cn|ai&account=)"},
 	{"GET", base + "tasks", "WorkBuddy: an account's task center (?account=)"},
 	{"POST", base + "keys/check", "WorkBuddy: check an API key with WorkBuddy before it is saved"},
+	{"GET", base + "usage", "WorkBuddy: requests, tokens and credits relayed (?hours=&account=)"},
+	{"POST", base + "usage/clear", "WorkBuddy: clear the usage ledger"},
+	{"GET", base + "credits/composition", "WorkBuddy: every account's credit packages, by expiry day (?refresh=1)"},
 	{"POST", base + "history/clear", "WorkBuddy: clear the run history"},
 }
 
@@ -103,6 +106,14 @@ func managementHandle(raw []byte) (any, error) {
 		return handleAccounts()
 	case method == "GET" && path == base+"credits":
 		return handleCredits(d, q.Get("account"), q.Get("refresh") != "")
+	case method == "GET" && path == base+"usage":
+		h, _ := strconv.Atoi(q.Get("hours"))
+		return handleUsage(h, q.Get("account"))
+	case method == "POST" && path == base+"usage/clear":
+		clearUsage()
+		return reply(200, map[string]any{"ok": true})
+	case method == "GET" && path == base+"credits/composition":
+		return handleComposition(q.Get("refresh") != "")
 	case method == "GET" && path == base+"credits/packages":
 		return handlePackages(q.Get("account"), q.Get("refresh") != "")
 	case method == "GET" && path == base+"models":
@@ -508,15 +519,24 @@ func handlePackages(account string, refresh bool) (any, error) {
 	if x == nil || x.A == nil {
 		return replyErr(404, "没有这个账号")
 	}
-	if x.A.IsKey() {
-		return reply(200, map[string]any{"account": x.ID, "packages": []pkgView{}})
+	pk, at, err := packagesFor(*x, refresh)
+	if err != nil {
+		return replyErr(502, err.Error())
+	}
+	return reply(200, map[string]any{"account": x.ID, "packages": pk, "as_of": at.UnixMilli()})
+}
+
+// packagesFor is an account's packages, kept for creditsTTL.
+func packagesFor(x acct, refresh bool) ([]pkgView, time.Time, error) {
+	if x.A == nil || x.A.IsKey() {
+		return []pkgView{}, time.Now(), nil
 	}
 	if !refresh {
 		pkgMu.Lock()
 		e, ok := pkgCache[x.ID]
 		pkgMu.Unlock()
 		if ok && time.Since(e.at) <= creditsTTL {
-			return reply(200, map[string]any{"account": x.ID, "packages": e.v, "as_of": e.at.UnixMilli()})
+			return e.v, e.at, nil
 		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -524,7 +544,7 @@ func handlePackages(account string, refresh bool) (any, error) {
 	a := newest(x.ID, x.A)
 	pk, err := wb.PackagesOf(ctx, HostDoer{}, x.Site, a, time.Now().UnixMilli())
 	if err != nil {
-		return replyErr(502, err.Error())
+		return nil, time.Time{}, err
 	}
 	out := make([]pkgView, 0, len(pk))
 	for _, p := range pk {
@@ -544,7 +564,107 @@ func handlePackages(account string, refresh bool) (any, error) {
 		v  []pkgView
 	}{now, out}
 	pkgMu.Unlock()
-	return reply(200, map[string]any{"account": x.ID, "packages": out, "as_of": now.UnixMilli()})
+	return out, now, nil
+}
+
+// handleComposition is every account's packages side by side, and what of
+// them runs out on each Beijing day.
+func handleComposition(refresh bool) (any, error) {
+	list, err := accounts()
+	if err != nil {
+		return replyErr(502, err.Error())
+	}
+	type row struct {
+		Account  string    `json:"account"`
+		Name     string    `json:"name"`
+		Build    string    `json:"build"`
+		Remain   float64   `json:"remain"`
+		Size     float64   `json:"size"`
+		Packages []pkgView `json:"packages"`
+		Error    string    `json:"error,omitempty"`
+	}
+	var targets []acct
+	for _, x := range list {
+		if x.A != nil && !x.A.IsKey() {
+			targets = append(targets, x)
+		}
+	}
+	out := make([]row, len(targets))
+	stamp := make([]int64, len(targets))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 8)
+	for i, x := range targets {
+		wg.Add(1)
+		go func(i int, x acct) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			r := row{Account: x.ID, Name: x.Name, Build: buildOf(x.Site)}
+			if x.A.AccountID != "" {
+				r.Name = x.A.AccountID
+			}
+			pk, at, err := packagesFor(x, refresh)
+			if err != nil {
+				r.Error = err.Error()
+			} else {
+				stamp[i] = at.UnixMilli()
+				r.Packages = pk
+				for _, p := range pk {
+					r.Remain += p.Remain
+					r.Size += p.Size
+				}
+			}
+			out[i] = r
+		}(i, x)
+	}
+	wg.Wait()
+	type day struct {
+		Day      string  `json:"day"`
+		At       int64   `json:"at"`
+		Remain   float64 `json:"remain"`
+		Packages int     `json:"packages"`
+		Accounts int     `json:"accounts"`
+	}
+	days := map[string]*day{}
+	seen := map[string]map[string]bool{}
+	var never float64
+	var sum, size float64
+	for _, r := range out {
+		sum += r.Remain
+		size += r.Size
+		for _, p := range r.Packages {
+			if p.Remain <= 0 {
+				continue
+			}
+			if p.ExpireAt == 0 {
+				never += p.Remain
+				continue
+			}
+			d := time.UnixMilli(p.ExpireAt).In(beijing).Format("2006-01-02")
+			if days[d] == nil {
+				days[d] = &day{Day: d, At: p.ExpireAt}
+				seen[d] = map[string]bool{}
+			}
+			days[d].Remain += p.Remain
+			days[d].Packages++
+			if !seen[d][r.Account] {
+				seen[d][r.Account] = true
+				days[d].Accounts++
+			}
+		}
+	}
+	dl := make([]*day, 0, len(days))
+	for _, d := range days {
+		dl = append(dl, d)
+	}
+	sort.Slice(dl, func(i, j int) bool { return dl[i].Day < dl[j].Day })
+	var oldest int64
+	for _, t := range stamp {
+		if t > 0 && (oldest == 0 || t < oldest) {
+			oldest = t
+		}
+	}
+	return reply(200, map[string]any{"accounts": out, "days": dl, "no_expiry": never, "remain": sum, "size": size, "as_of": oldest})
 }
 
 // ---- models --------------------------------------------------------------------
