@@ -1,0 +1,4 @@
+This project ports logic from:
+- magpie-community/plugins, packages/workbuddy (MIT) — https://github.com/magpie-community/plugins
+- ardeyouxipianyi/workbuddy2api-hub (MIT) — https://github.com/ardeyouxipianyi/workbuddy2api-hub
+It is a plugin for router-for-me/CLIProxyAPI.

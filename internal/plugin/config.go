@@ -1,0 +1,153 @@
+package plugin
+
+import (
+	"strings"
+	"sync/atomic"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/Sakuralaaa/WorkBuddy-plugins/internal/wb"
+)
+
+// ID is the plugin's id (its file name, workbuddy-magpie.so, and its key
+// under plugins.configs).
+const ID = "workbuddy-magpie"
+
+// Version is this build's version.
+var Version = "0.1.0"
+
+// Tasks are the background benefit jobs ported from workbuddy2api-hub, each
+// off until switched on.
+type Tasks struct {
+	// Growth runs the China growth centre's one-time tasks (成长任务).
+	Growth bool `yaml:"growth" json:"growth"`
+	// Campaigns runs the activity portal's campaign tasks (星巴克协作, 记者节).
+	Campaigns bool `yaml:"campaigns" json:"campaigns"`
+	// MiniProgram runs the WeChat mini-program's task chain.
+	MiniProgram bool `yaml:"miniprogram" json:"miniprogram"`
+	// CatTravel sends the Buddy cat travelling and claims its return
+	// (猫猫旅行), opening Buddy boxes with spare energy.
+	CatTravel bool `yaml:"cat_travel" json:"cat_travel"`
+	// Rewards keeps the growth centre's streak: a make-up card for a missed
+	// day, the gift and compensation packs, streak tiers and lottery draws.
+	Rewards bool `yaml:"rewards" json:"rewards"`
+	// Night reports the night-owl task's event between 23:00 and 08:00.
+	Night bool `yaml:"night" json:"night"`
+	// ActivityReport reports one chat_request_send a day on China accounts
+	// (lights the growth centre's streak day).
+	ActivityReport bool `yaml:"activity_report" json:"activity_report"`
+	// IntlDaily is WorkBuddy AI's daily active session.
+	IntlDaily bool `yaml:"intl_daily" json:"intl_daily"`
+	// IntlDailyWeb adds its web-channel leg (a real cloud agent session).
+	IntlDailyWeb bool `yaml:"intl_daily_web" json:"intl_daily_web"`
+	// Claim claims a reward a task earned (workbuddy2api-hub's claim switch).
+	Claim *bool `yaml:"claim" json:"claim"`
+}
+
+// Schedule is when the jobs run, in Beijing hours (workbuddy2api-hub's
+// defaults: check-in and travel at 09 and 21, night at 01).
+type Schedule struct {
+	CheckinAt     string   `yaml:"checkin_at" json:"checkin_at"`
+	TravelHours   []int    `yaml:"travel_hours" json:"travel_hours"`
+	GrowthHours   []int    `yaml:"growth_hours" json:"growth_hours"`
+	NightHours    []int    `yaml:"night_hours" json:"night_hours"`
+	DailyTimes    []string `yaml:"intl_daily_times" json:"intl_daily_times"`
+	RewardsHours  []int    `yaml:"rewards_hours" json:"rewards_hours"`
+	ActivityHours []int    `yaml:"activity_hours" json:"activity_hours"`
+}
+
+// Config is plugins.configs.workbuddy-magpie.
+type Config struct {
+	FreeOnly   bool  `yaml:"free_only" json:"free_only"`
+	FreeOnlyCN *bool `yaml:"free_only_cn" json:"free_only_cn"`
+	FreeOnlyAI *bool `yaml:"free_only_ai" json:"free_only_ai"`
+	// HideDsh takes DeepSeek Harness's name out of what goes upstream; on
+	// unless set false (magpie's hide_dsh).
+	HideDsh *bool `yaml:"hide_dsh" json:"hide_dsh"`
+	// Checkin is the China build's daily check-in (Buddy 加油站签到, the
+	// billing meter's daily-checkin), once a Beijing day. Off unless on, as
+	// magpie's switch.
+	Checkin  bool     `yaml:"checkin" json:"checkin"`
+	Tasks    Tasks    `yaml:"tasks" json:"tasks"`
+	Schedule Schedule `yaml:"schedule" json:"schedule"`
+	// Versions override what the requests say the desktop app is.
+	CNApp string `yaml:"cn_app_version" json:"cn_app_version"`
+	CNCLI string `yaml:"cn_cli_version" json:"cn_cli_version"`
+	AIApp string `yaml:"ai_app_version" json:"ai_app_version"`
+	AICLI string `yaml:"ai_cli_version" json:"ai_cli_version"`
+	// SDKOS and SDKArch override X-Stainless-OS/Arch.
+	SDKOS   string `yaml:"sdk_os" json:"sdk_os"`
+	SDKArch string `yaml:"sdk_arch" json:"sdk_arch"`
+	// Scheduler turns the background loop off altogether (false).
+	Scheduler *bool `yaml:"scheduler" json:"scheduler"`
+}
+
+func (c *Config) hideDsh() bool { return c.HideDsh == nil || *c.HideDsh }
+
+func (c *Config) claim() bool { return c.Tasks.Claim == nil || *c.Tasks.Claim }
+
+func (c *Config) schedulerOn() bool { return c.Scheduler == nil || *c.Scheduler }
+
+func (c *Config) freeOnly(site *wb.Site) bool {
+	if site.AI && c.FreeOnlyAI != nil {
+		return *c.FreeOnlyAI
+	}
+	if !site.AI && c.FreeOnlyCN != nil {
+		return *c.FreeOnlyCN
+	}
+	return c.FreeOnly
+}
+
+func (c *Config) withDefaults() *Config {
+	out := *c
+	s := &out.Schedule
+	if len(s.TravelHours) == 0 {
+		s.TravelHours = []int{9, 21}
+	}
+	if len(s.GrowthHours) == 0 {
+		s.GrowthHours = []int{10}
+	}
+	if len(s.NightHours) == 0 {
+		s.NightHours = []int{1}
+	}
+	if len(s.RewardsHours) == 0 {
+		s.RewardsHours = []int{9, 21}
+	}
+	if len(s.ActivityHours) == 0 {
+		s.ActivityHours = []int{9, 21}
+	}
+	if len(s.DailyTimes) == 0 {
+		s.DailyTimes = []string{"10:30", "20:30"}
+	}
+	return &out
+}
+
+var current atomic.Pointer[Config]
+
+func cfg() *Config {
+	if c := current.Load(); c != nil {
+		return c
+	}
+	return (&Config{}).withDefaults()
+}
+
+// Configure reads the plugin's YAML subtree.
+func Configure(raw []byte) error {
+	c := &Config{}
+	if len(strings.TrimSpace(string(raw))) > 0 {
+		if err := yaml.Unmarshal(raw, c); err != nil {
+			return err
+		}
+	}
+	c = c.withDefaults()
+	current.Store(c)
+	wb.ResetVersions()
+	wb.SetVersions(c.CNApp, c.CNCLI, c.AIApp, c.AICLI)
+	if c.SDKOS != "" {
+		wb.SDKOS = c.SDKOS
+	}
+	if c.SDKArch != "" {
+		wb.SDKArch = c.SDKArch
+	}
+	return nil
+}
