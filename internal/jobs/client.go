@@ -80,6 +80,8 @@ type Client struct {
 	A    *wb.Account
 	// Nick is the account's display name, for the event envelopes.
 	Nick string
+	// Chat sends a real chat for the account (tasks that need one).
+	Chat ChatFunc
 }
 
 // Enterprise says whether the account is an enterprise seat (no growth
@@ -272,4 +274,8 @@ var beijing = time.FixedZone("UTC+8", 8*3600)
 func InNightWindow(now time.Time) bool {
 	h := now.In(beijing).Hour()
 	return h >= 23 || h < 8
+}
+
+func containsFold(s, sub string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
