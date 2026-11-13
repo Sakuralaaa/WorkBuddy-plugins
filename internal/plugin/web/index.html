@@ -6,94 +6,169 @@
 <title>WorkBuddy</title>
 <style>
 :root{
-  --bg:#f6f7f9;--card:#fff;--text:#1f2329;--sub:#646a73;--line:#e5e6eb;--soft:#f2f3f5;
-  --pri:#3370ff;--pri-soft:#e8f0ff;--ok:#00a870;--ok-soft:#e3f9ef;--warn:#e37318;--warn-soft:#fff1e6;
-  --bad:#e34d59;--bad-soft:#ffecec;--ai:#7b61ff;--ai-soft:#efebff;--radius:10px;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 2px 8px rgba(0,0,0,.04);
+  --bg:#f5f6f8;--bg2:#eef0f4;--card:#ffffff;--text:#16181d;--sub:#5f6672;--faint:#8b919c;
+  --line:#e4e7ec;--line2:#d5d9e0;--soft:#f3f4f7;--hover:#f0f2f6;
+  --pri:#4f6bff;--pri2:#7b5cff;--pri-soft:#eef1ff;--pri-text:#3b55e6;
+  --ok:#12a26b;--ok-soft:#e7f7ef;--warn:#d9730d;--warn-soft:#fdf2e6;
+  --bad:#e0384d;--bad-soft:#fdecee;--ai:#7b5cff;--ai-soft:#f1edff;
+  --radius:14px;--radius-sm:9px;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+  --shadow-lg:0 12px 32px -8px rgba(16,24,40,.18),0 4px 12px -4px rgba(16,24,40,.08);
+  --ring:0 0 0 3px rgba(79,107,255,.18);
 }
 html[data-theme=dark]{
-  --bg:#141518;--card:#1d1f23;--text:#e8e9eb;--sub:#9aa0a8;--line:#2e3137;--soft:#25282d;
-  --pri:#5b8cff;--pri-soft:#1f2b45;--ok:#34c38f;--ok-soft:#173327;--warn:#f0a050;--warn-soft:#3a2a18;
-  --bad:#ff6b76;--bad-soft:#3b1d21;--ai:#a291ff;--ai-soft:#2a2445;--shadow:none;
+  --bg:#0e0f12;--bg2:#131419;--card:#17181d;--text:#ecedf0;--sub:#a1a6b0;--faint:#737885;
+  --line:#26282f;--line2:#30333b;--soft:#1d1f25;--hover:#20232a;
+  --pri:#6d84ff;--pri2:#9a7dff;--pri-soft:#1c2140;--pri-text:#93a5ff;
+  --ok:#3ccf91;--ok-soft:#12291f;--warn:#f0a050;--warn-soft:#2e2215;
+  --bad:#ff6b7d;--bad-soft:#331a1f;--ai:#a891ff;--ai-soft:#231d3d;
+  --shadow:0 0 0 1px rgba(255,255,255,.02);--shadow-lg:0 16px 40px -8px rgba(0,0,0,.6);
+  --ring:0 0 0 3px rgba(109,132,255,.28);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
-a{color:var(--pri);text-decoration:none}
-header{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
-header h1{font-size:17px;margin:0;font-weight:600}
-header .ver{color:var(--sub);font-size:12px}
-nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:8px}
-nav button{border:0;background:transparent;color:var(--sub);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:14px}
-nav button.on{background:var(--pri-soft);color:var(--pri);font-weight:600}
+html{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+a{color:var(--pri-text);text-decoration:none}a:hover{text-decoration:underline}
+::selection{background:var(--pri-soft)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:10px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+
+/* header */
+header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;padding:12px 24px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--pri),var(--pri2));display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;box-shadow:0 4px 12px -4px var(--pri)}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.01em}
+header .ver{color:var(--faint);font-size:12px;padding:1px 7px;border:1px solid var(--line);border-radius:999px}
+nav{display:flex;gap:2px;flex-wrap:wrap;padding:3px;background:var(--soft);border:1px solid var(--line);border-radius:11px;margin-left:6px}
+nav button{border:0;background:transparent;color:var(--sub);padding:6px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s,color .15s}
 nav button:hover{color:var(--text)}
+nav button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow);font-weight:600}
 .spacer{flex:1}
-main{padding:18px 20px 40px;max-width:1280px;margin:0 auto}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
-.card h2{font-size:15px;margin:0 0 12px;font-weight:600;display:flex;align-items:center;gap:8px}
-.card h3{font-size:14px;margin:14px 0 8px;font-weight:600}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--sub);background:var(--card)}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.chip.ok:before{background:var(--ok)}.chip.warn:before{background:var(--warn)}
+#clock{font-variant-numeric:tabular-nums}
+
+/* layout */
+main{padding:22px 24px 56px;max-width:1320px;margin:0 auto}
+section{animation:fade .18s ease}
+@keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 14px;font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:-.01em}
+.card h3{font-size:13px;margin:16px 0 10px;font-weight:600;color:var(--sub);text-transform:none}
+.card>h2+p{margin-top:-6px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
-.stats{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:14px}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
-.stat .k{color:var(--sub);font-size:12px}.stat .v{font-size:22px;font-weight:600;margin-top:2px}
-.btn{border:1px solid var(--line);background:var(--card);color:var(--text);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:13px;white-space:nowrap}
-.btn:hover{border-color:var(--pri);color:var(--pri)}
-.btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}
-.btn.pri:hover{filter:brightness(1.08);color:#fff}
-.btn.bad{color:var(--bad)}.btn.bad:hover{border-color:var(--bad)}
-.btn.sm{padding:3px 9px;font-size:12px}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:var(--soft);color:var(--sub);white-space:nowrap}
-.badge.cn{background:var(--pri-soft);color:var(--pri)}.badge.ai{background:var(--ai-soft);color:var(--ai)}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
+.stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:16px}
+.stat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);overflow:hidden}
+.stat:after{content:"";position:absolute;right:-18px;top:-18px;width:64px;height:64px;border-radius:50%;background:var(--pri-soft);opacity:.7}
+.stat .k{position:relative;z-index:1;color:var(--sub);font-size:12px;font-weight:500}
+.stat .v{position:relative;z-index:1;font-size:24px;font-weight:700;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--card);color:var(--text);padding:6px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s}
+.btn:hover{background:var(--hover);border-color:var(--line2)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:0;box-shadow:var(--ring)}
+.btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--pri) 92%,#fff),var(--pri));border-color:transparent;color:#fff;box-shadow:0 1px 2px rgba(16,24,40,.12),inset 0 1px 0 rgba(255,255,255,.15)}
+.btn.pri:hover{filter:brightness(1.06);color:#fff}
+.btn.bad{color:var(--bad)}.btn.bad:hover{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
+.btn.sm{padding:3px 10px;font-size:12px;border-radius:7px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--sub)}.btn.ghost:hover{background:var(--hover);color:var(--text)}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:1px 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--soft);color:var(--sub);white-space:nowrap;border:1px solid transparent;line-height:20px}
+.badge.cn{background:var(--pri-soft);color:var(--pri-text)}.badge.ai{background:var(--ai-soft);color:var(--ai)}
 .badge.ok{background:var(--ok-soft);color:var(--ok)}.badge.warn{background:var(--warn-soft);color:var(--warn)}.badge.bad{background:var(--bad-soft);color:var(--bad)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{color:var(--sub);font-weight:500;background:var(--soft)}
+.badge.ok:before,.badge.warn:before,.badge.bad:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* tables */
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--faint);font-weight:600;font-size:12px;background:var(--soft);position:sticky;top:0}
+th:first-child{border-top-left-radius:var(--radius-sm)}th:last-child{border-top-right-radius:var(--radius-sm)}
+tbody tr{transition:background .12s}tbody tr:hover{background:var(--hover)}
 tr:last-child td{border-bottom:0}
+tr.off td:not(:first-child){opacity:.45;text-decoration:line-through;text-decoration-color:var(--faint)}
+div[style*="overflow:auto"]{border:1px solid var(--line);border-radius:var(--radius-sm)}
 .muted{color:var(--sub)}.small{font-size:12px}
-.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
-input[type=text],input[type=password],input[type=number],select,textarea{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:13px;outline:none}
-input:focus,select:focus,textarea:focus{border-color:var(--pri)}
-textarea{width:100%;min-height:120px;font-family:ui-monospace,Menlo,Consolas,monospace}
-label.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-.toggle{position:relative;width:34px;height:20px;flex:none}
-.toggle input{opacity:0;width:0;height:0}
-.toggle span{position:absolute;inset:0;background:var(--line);border-radius:20px;transition:.2s}
-.toggle span:before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}
+.mono{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;font-size:12px}
+
+/* forms */
+input[type=text],input[type=password],input[type=number],select,textarea{background:var(--card);color:var(--text);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:7px 11px;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit}
+select{padding-right:28px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b919c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--pri) 35%,var(--line2))}
+input:focus,select:focus,textarea:focus{border-color:var(--pri);box-shadow:var(--ring)}
+input[type=file]{font-size:13px;color:var(--sub)}
+input[type=file]::file-selector-button{border:1px solid var(--line2);background:var(--card);color:var(--text);padding:6px 12px;border-radius:var(--radius-sm);margin-right:10px;cursor:pointer}
+textarea{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+input[type=checkbox]{accent-color:var(--pri)}
+label.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;font-size:13px}
+.toggle{position:relative;display:inline-block;width:36px;height:20px;flex:none;vertical-align:middle}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle span{position:absolute;inset:0;background:var(--line2);border-radius:20px;transition:.2s}
+.toggle span:before{content:"";position:absolute;width:16px;height:16px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s cubic-bezier(.3,.7,.4,1.2);box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .toggle input:checked+span{background:var(--pri)}
-.toggle input:checked+span:before{transform:translateX(14px)}
-.bar{height:6px;background:var(--soft);border-radius:4px;overflow:hidden;margin:4px 0}
-.bar i{display:block;height:100%;background:var(--pri)}
+.toggle input:checked+span:before{transform:translateX(16px)}
+.toggle input:focus-visible+span{box-shadow:var(--ring)}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field>span{color:var(--sub);font-size:12px;font-weight:500}
+
+/* progress */
+.bar{height:7px;background:var(--soft);border-radius:6px;overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--pri2));border-radius:6px;transition:width .4s ease}
 .bar i.hi{background:var(--warn)}.bar i.full{background:var(--bad)}
-.acct{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;background:var(--card)}
-.acct .name{font-weight:600;font-size:14px;word-break:break-all}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;margin:8px 0}
-.kv span:nth-child(odd){color:var(--sub)}
-.tabs2{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tabs2 button{border:1px solid var(--line);background:var(--card);color:var(--sub);padding:6px 14px;border-radius:999px;cursor:pointer}
-.tabs2 button.on{border-color:var(--pri);color:var(--pri);background:var(--pri-soft);font-weight:600}
-.note{padding:10px 12px;border-radius:8px;background:var(--soft);color:var(--sub);font-size:13px;margin-bottom:12px}
-.note.warn{background:var(--warn-soft);color:var(--warn)}.note.bad{background:var(--bad-soft);color:var(--bad)}.note.ok{background:var(--ok-soft);color:var(--ok)}
-.toast{position:fixed;right:18px;bottom:18px;z-index:50;display:flex;flex-direction:column;gap:8px}
-.toast div{background:var(--text);color:var(--bg);padding:9px 14px;border-radius:8px;max-width:420px;box-shadow:0 4px 18px rgba(0,0,0,.2);font-size:13px}
+
+/* account cards */
+.acct{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;background:var(--card);transition:border-color .15s,box-shadow .15s,transform .15s;display:flex;flex-direction:column}
+.acct:hover{border-color:var(--line2);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
+.acct .name{font-weight:650;font-size:15px;word-break:break-all;letter-spacing:-.01em}
+.acct>.row:last-child{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line);gap:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12px;margin:10px 0}
+.kv span:nth-child(odd){color:var(--faint)}
+.kv span:nth-child(even){word-break:break-all}
+
+/* pill tabs */
+.tabs2{display:inline-flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;padding:3px;background:var(--soft);border:1px solid var(--line);border-radius:11px}
+.tabs2 button{border:0;background:transparent;color:var(--sub);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
+.tabs2 button:hover{color:var(--text)}
+.tabs2 button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow);font-weight:600}
+.tabs2+.tabs2{margin-left:8px}
+
+/* notes */
+.note{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-sm);background:var(--soft);color:var(--sub);font-size:13px;margin-bottom:14px;border:1px solid var(--line)}
+.note.warn{background:var(--warn-soft);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 22%,transparent)}
+.note.bad{background:var(--bad-soft);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 22%,transparent)}
+.note.ok{background:var(--ok-soft);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 22%,transparent)}
+
+/* toast */
+.toast{position:fixed;right:20px;bottom:20px;z-index:60;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toast div{background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;max-width:440px;box-shadow:var(--shadow-lg);font-size:13px;animation:toastIn .22s cubic-bezier(.2,.8,.3,1.2)}
 .toast div.bad{background:var(--bad);color:#fff}
-.empty{text-align:center;color:var(--sub);padding:28px 0}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+
+.empty{text-align:center;color:var(--faint);padding:40px 0;font-size:13px;grid-column:1/-1}
+.empty:before{content:"";display:block;width:40px;height:40px;margin:0 auto 10px;border-radius:12px;background:var(--soft);border:1px dashed var(--line2)}
 details summary{cursor:pointer;color:var(--sub);font-size:12px}
-details pre{white-space:pre-wrap;word-break:break-all;background:var(--soft);padding:8px;border-radius:6px;margin:6px 0 0;font-size:12px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:40}
-.dialog{background:var(--card);border-radius:12px;padding:20px;width:min(460px,92vw);border:1px solid var(--line)}
-.dialog h3{margin:0 0 8px}
-.field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.field>span{color:var(--sub);font-size:12px}
+details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;background:var(--soft);border:1px solid var(--line);padding:10px 12px;border-radius:var(--radius-sm);margin:8px 0 0;font-size:12px}
+
+/* dialog */
+.overlay{position:fixed;inset:0;background:rgba(10,12,18,.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fade .15s ease}
+.dialog{background:var(--card);border-radius:16px;padding:24px;width:min(460px,92vw);border:1px solid var(--line);box-shadow:var(--shadow-lg)}
+.dialog h3{margin:0 0 6px;font-size:17px;letter-spacing:-.01em}
+.dialog .err{color:var(--bad);font-size:12px;margin:-4px 0 10px}
+
 .hide{display:none!important}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--pri);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line2);border-top-color:var(--pri);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media (max-width:640px){main{padding:12px}th,td{padding:6px 4px}}
+@media (max-width:760px){header{padding:10px 14px}nav{order:3;width:100%;margin-left:0;overflow-x:auto;flex-wrap:nowrap}main{padding:14px}th,td{padding:8px 8px}.card{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>WorkBuddy</h1><span class="ver" id="ver"></span>
+  <div class="brand"><div class="logo">W</div><h1>WorkBuddy</h1><span class="ver" id="ver"></span></div>
   <nav id="nav">
     <button data-tab="accounts" class="on">账号</button>
     <button data-tab="add">添加账号</button>
@@ -104,11 +179,14 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--soft);pad
     <button data-tab="logs">状态与日志</button>
   </nav>
   <span class="spacer"></span>
-  <span class="small muted" id="clock"></span>
+  <div class="hdr-right">
+    <span class="chip warn" id="keyChip">未设置管理密钥</span>
+    <button class="btn sm ghost" onclick="forgetKey()" title="手动输入其他管理密钥">更换密钥</button>
+    <span class="small muted" id="clock"></span>
+  </div>
 </header>
 <main>
-  <div id="keynote" class="note hide"></div>
-
+  
   <!-- accounts -->
   <section id="tab-accounts">
     <div class="stats" id="acctStats"></div>
@@ -161,7 +239,7 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--soft);pad
   <!-- credits -->
   <section id="tab-credits" class="hide">
     <div class="stats" id="creditStats"></div>
-    <div class="card"><h2>积分额度 <span class="spacer"></span><button class="btn" onclick="loadCredits()">刷新</button></h2>
+    <div class="card"><h2>积分额度 <span class="muted small" id="creditAsOf" style="font-weight:400"></span><span class="spacer"></span><button class="btn" onclick="loadCredits(true)">强制刷新</button></h2>
       <div id="creditList" class="grid"><div class="empty">加载中…</div></div></div>
   </section>
 
@@ -172,7 +250,7 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--soft);pad
         <div class="tabs2" id="modelBuild" style="margin:0"><button data-b="cn" class="on">国内版</button><button data-b="ai">国际版</button></div>
         <button class="btn" onclick="loadModels()">刷新</button></h2>
       <div id="modelNote"></div>
-      <div style="overflow:auto"><table><thead><tr><th>模型</th><th>名称</th><th>上下文</th><th>价格</th><th>思考档位</th><th>图片</th></tr></thead><tbody id="modelRows"></tbody></table></div>
+      <div style="overflow:auto"><table><thead><tr><th style="width:64px">启用</th><th>模型</th><th>名称</th><th>上下文</th><th>价格</th><th>思考档位</th><th>图片</th></tr></thead><tbody id="modelRows"></tbody></table></div>
     </div>
     <div class="card">
       <h2>模型与请求设置</h2>
@@ -256,12 +334,13 @@ details pre{white-space:pre-wrap;word-break:break-all;background:var(--soft);pad
   </section>
 </main>
 <div class="toast" id="toast"></div>
-<div id="keyDialog" class="overlay hide"><div class="dialog">
-  <h3>需要 CPA 管理密钥</h3>
+<div id="keyDialog" class="overlay hide"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
+  <h3 id="keyTitle">需要 CPA 管理密钥</h3>
   <p class="muted small" id="keyWhy"></p>
-  <div class="field"><span>管理密钥（secret-key）</span><input type="password" id="keyInput" autocomplete="off"></div>
-  <label class="sw small"><input type="checkbox" id="keyRemember" checked> 在本浏览器记住（仅本页使用）</label>
-  <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn pri" onclick="keySubmit()">确定</button></div>
+  <div class="field"><span>管理密钥（secret-key）</span><input type="password" id="keyInput" autocomplete="off" spellcheck="false"></div>
+  <div class="err hide" id="keyErr"></div>
+  <label class="sw small"><input type="checkbox" id="keyRemember"> 在本浏览器记住（仅简单混淆，不是加密；不勾选则关闭标签页即忘记）</label>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn pri" id="keyOk" onclick="keySubmit()">确定</button></div>
 </div></div>
 <script>
 'use strict';
@@ -286,10 +365,19 @@ applyTheme();
 try{new MutationObserver(applyTheme).observe(window.parent.document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
 if(window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',applyTheme);
 
-// ---- the management key: the management center's own remembered login ----
-// Same as CPA management center src/utils/encryption.ts (enc::v2::, XOR with
-// "cli-proxy-api-webui::secure-storage|<host>") and src/stores/useAuthStore.ts
-// (zustand persist under "cli-proxy-auth": {state:{apiBase, managementKey}}).
+// ---- the management key ----
+// Every request is authorised with the CPA management key and nothing else.
+// Where it comes from, in order:
+//  1. The management center's own remembered login. The page is served from
+//     the same origin as the center, so the center's documented storage
+//     ("cli-proxy-auth", zustand persist, enc::v2:: = XOR with
+//     "cli-proxy-api-webui::secure-storage|<host>") is readable here. Only
+//     present when "remember password" was ticked at login.
+//  2. A key typed on this page: kept for this tab only (sessionStorage), or in
+//     localStorage when the user explicitly asks to remember it.
+//  3. Ask.
+// The page never injects code into the parent frame and never intercepts the
+// center's requests.
 const SALT='cli-proxy-api-webui::secure-storage';
 function xorText(bytes,keyText){const k=new TextEncoder().encode(keyText);const out=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)out[i]=bytes[i]^k[i%k.length];return out}
 function b64bytes(body){const bin=atob(body);const b=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)b[i]=bin.charCodeAt(i);return b}
@@ -301,99 +389,73 @@ function deobfuscateWith(payload,keyText){const e=encOf(payload);if(!e)return pa
   try{return new TextDecoder().decode(xorText(b64bytes(e.body),keyText))}catch(err){return null}}
 function deobfuscate(payload){const e=encOf(payload);if(!e)return payload;
   return deobfuscateWith(payload,e.legacy?SALT+'|'+location.host+'|'+navigator.userAgent:SALT+'|'+location.host)}
-// The management center keys its storage on the host it was opened at, which
-// is not always this frame's (a proxy, another name or port for the same
-// CPA). Its persisted auth starts {"state":{"apiBase":"<scheme>://<host>...",
-// and every host byte is decoded before the key needs it, so the writer's
-// host can be read back from the data itself.
-function recoverHost(cipher){
-  const salt=new TextEncoder().encode(SALT+'|');const P='{"state":{"apiBase":"';
-  const plain=[];const host=[];let start=-1,ended=false;
-  for(let p=0;p<cipher.length&&p<600;p++){
-    let k;
-    if(p<salt.length)k=salt[p];
-    else{const j=p-salt.length;if(j>=host.length){if(ended)return host;return null}k=host[j]}
-    plain.push(cipher[p]^k);
-    if(p<P.length){if(plain[p]!==P.charCodeAt(p))return null;continue}
-    if(start<0){const t=String.fromCharCode(...plain.slice(P.length));const m=t.indexOf('://');if(m>=0)start=P.length+m+3;continue}
-    if(!ended&&p>=start){const c=plain[p];if(c===47||c===34||c===63||c===35){ended=true;if(host.length&&salt.length+host.length<=p+1)return host}else host.push(c)}
-  }
-  return ended&&host.length?host:null;
-}
-function centerCandidates(raw){
-  const keys=[];const add=h=>{if(h&&!keys.includes(h))keys.push(h)};
+function obfuscate(text){const b=xorText(new TextEncoder().encode(text),SALT+'|'+location.host);let s='';b.forEach(x=>s+=String.fromCharCode(x));return 'enc::v2::'+btoa(s)}
+function hostCandidates(){
+  const hs=[];const add=h=>{if(h&&!hs.includes(h))hs.push(h)};
   add(location.host);
   try{add(window.parent.location.host)}catch(e){}
-  try{add(window.top.location.host)}catch(e){}
   try{if(document.referrer)add(new URL(document.referrer).host)}catch(e){}
-  const e=encOf(raw);
-  if(e&&!e.legacy){try{const h=recoverHost(b64bytes(e.body));if(h)add(new TextDecoder().decode(new Uint8Array(h)))}catch(err){}}
-  const out=keys.map(h=>(e&&e.legacy)?SALT+'|'+h+'|'+navigator.userAgent:SALT+'|'+h);
-  out.push(SALT);
-  return out;
+  return hs;
 }
-function obfuscate(text){const b=xorText(new TextEncoder().encode(text),SALT+'|'+location.host);let s='';b.forEach(x=>s+=String.fromCharCode(x));return 'enc::v2::'+btoa(s)}
 function centerKey(){
   let raw=null;
   try{raw=localStorage.getItem('cli-proxy-auth')}catch(e){}
-  if(!raw)return {why:'管理中心没有保存登录信息（登录时未勾选「记住密码」）'};
-  let lastErr='';
-  const tries=encOf(raw)?centerCandidates(raw):[null];
+  if(!raw)return {why:'管理中心没有在浏览器里保存登录信息（登录时未勾选「记住密码」）'};
+  const e=encOf(raw);
+  const tries=!e?[null]:hostCandidates().map(h=>e.legacy?SALT+'|'+h+'|'+navigator.userAgent:SALT+'|'+h).concat([SALT]);
   for(const k of tries){
     try{
-      const txt=k===null?raw:deobfuscateWith(raw,k); if(!txt)continue;
+      const txt=k===null?raw:deobfuscateWith(raw,k); if(!txt||txt.charAt(0)!=='{')continue;
       const data=JSON.parse(txt); const st=data&&data.state?data.state:data;
-      if(st&&st.managementKey)return {key:st.managementKey,base:st.apiBase||''};
-      if(st&&('apiBase' in st||'rememberPassword' in st))return {why:'管理中心登录时未勾选「记住密码」，管理密钥没有保存在浏览器中'};
-    }catch(e){lastErr=e.message}
+      if(st&&st.managementKey)return {key:st.managementKey};
+      if(st&&('apiBase' in st||'rememberPassword' in st))return {why:'管理中心登录时未勾选「记住密码」，密钥没有保存在浏览器中'};
+    }catch(err){}
   }
-  return {why:'无法解析管理中心保存的登录信息'+(lastErr?'（'+lastErr+'）':'')};
+  return {why:'无法读取管理中心保存的登录信息（可能是通过其他地址打开的管理中心）'};
 }
-// The page sits in the management center's own frame (same origin), and the
-// center already sends its key on every request it makes. So the key is taken
-// from the center itself: a small hook on the center's XMLHttpRequest records
-// the Authorization it sends to /v0/management, then the center is asked to
-// reload this plugin page, which makes it send one. No second password.
-const CAP_KEY='workbuddy-magpie::center-key', CAP_TRY='workbuddy-magpie::center-key-try';
-function capturedKey(){try{return sessionStorage.getItem(CAP_KEY)||''}catch(e){return ''}}
-function hookCenter(){
-  const P=window.parent; if(!P||P===window)return false;
-  try{
-    if(P.__wbMagpieHook)return true;
-    const s=P.document.createElement('script');
-    s.textContent="(function(){if(window.__wbMagpieHook)return;window.__wbMagpieHook=1;var X=XMLHttpRequest.prototype,o=X.open,h=X.setRequestHeader;X.open=function(m,u){this.__wbU=String(u||'');return o.apply(this,arguments)};X.setRequestHeader=function(n,v){try{if(String(n).toLowerCase()==='authorization'&&/^Bearer\\s+/i.test(v)&&/\\/v0\\/management/.test(this.__wbU||''))sessionStorage.setItem('"+CAP_KEY+"',String(v).replace(/^Bearer\\s+/i,''))}catch(e){}return h.apply(this,arguments)}})();";
-    P.document.head.appendChild(s); s.remove();
-    return !!P.__wbMagpieHook;
-  }catch(e){return false}
-}
-function captureFromCenter(){
-  let last=0; try{last=+sessionStorage.getItem(CAP_TRY)||0}catch(e){}
-  if(Date.now()-last<15000)return false;
-  if(!hookCenter())return false;
-  try{sessionStorage.setItem(CAP_TRY,String(Date.now()))}catch(e){}
-  try{window.parent.dispatchEvent(new window.parent.Event('plugin-resources-refresh'));return true}catch(e){return false}
+function ownKey(){
+  try{const v=sessionStorage.getItem(OWN_KEY)||localStorage.getItem(OWN_KEY);return v?deobfuscate(v):''}catch(e){return ''}
 }
 function initKey(){
-  hookCenter();
-  const cap=capturedKey();
-  if(cap){KEY=cap;KEY_SRC='center';return true}
   const c=centerKey();
-  if(c.key){KEY=c.key;KEY_SRC='center';return true}
-  if(captureFromCenter())return false;
-  let own=null; try{own=deobfuscate(localStorage.getItem(OWN_KEY)||sessionStorage.getItem(OWN_KEY)||'')}catch(e){}
-  if(own){KEY=own;KEY_SRC='own';showKeyNote(c.why,true);return true}
-  showKeyNote(c.why,false);askKey(c.why);return false;
+  if(c.key){KEY=c.key;KEY_SRC='center';setKeyChip();return true}
+  const own=ownKey();
+  if(own){KEY=own;KEY_SRC='own';setKeyChip();return true}
+  setKeyChip();askKey(c.why);return false;
 }
-function showKeyNote(why,have){
-  const n=document.getElementById('keynote');
-  n.className='note warn';
-  n.innerHTML='未能自动取得 CPA 管理密钥：'+esc(why||'')+'。'+(have?'当前使用你在本页输入过的密钥。':'请输入一次管理密钥。')+' 在管理中心登录时勾选「记住密码」即可免输入。 <a href="#" onclick="forgetKey();return false">更换密钥</a>';
+function setKeyChip(){
+  const el=document.getElementById('keyChip');if(!el)return;
+  el.textContent=KEY?(KEY_SRC==='center'?'已使用管理中心的密钥':'已使用本页输入的密钥'):'未设置管理密钥';
+  el.className='chip '+(KEY?'ok':'warn');
 }
-function askKey(why){document.getElementById('keyWhy').textContent=(why||'')+'。本页所有请求只用 CPA 管理密钥鉴权，插件没有自己的密钥。';document.getElementById('keyDialog').classList.remove('hide');setTimeout(()=>document.getElementById('keyInput').focus(),50)}
-function keySubmit(){const v=document.getElementById('keyInput').value.trim();if(!v)return;KEY=v;KEY_SRC='own';
-  const store=document.getElementById('keyRemember').checked?localStorage:sessionStorage;try{store.setItem(OWN_KEY,obfuscate(v))}catch(e){}
-  document.getElementById('keyDialog').classList.add('hide');boot()}
-function forgetKey(){try{localStorage.removeItem(OWN_KEY);sessionStorage.removeItem(OWN_KEY)}catch(e){}KEY='';askKey('请重新输入')}
+function askKey(why,err){
+  document.getElementById('keyWhy').textContent=(why?why+'。':'')+'本页只用 CPA 管理密钥（remote-management.secret-key）鉴权，插件没有自己的密钥。';
+  const m=document.getElementById('keyErr');m.textContent=err||'';m.classList.toggle('hide',!err);
+  document.getElementById('keyDialog').classList.remove('hide');
+  setTimeout(()=>document.getElementById('keyInput').focus(),50);
+}
+async function keySubmit(){
+  const inp=document.getElementById('keyInput'),btn=document.getElementById('keyOk');
+  const v=inp.value.trim();if(!v)return;
+  btn.disabled=true;btn.textContent='校验中…';
+  try{
+    const r=await fetch(MG+'/'+PID+'/status?limit=1',{headers:{'Authorization':'Bearer '+v},cache:'no-store'});
+    if(r.status===401||r.status===403){askKey('',  '密钥不正确，请检查后重试');return}
+    if(!r.ok){askKey('','校验失败：HTTP '+r.status);return}
+  }catch(e){askKey('','无法连接 CPA：'+e.message);return}
+  finally{btn.disabled=false;btn.textContent='确定'}
+  KEY=v;KEY_SRC='own';inp.value='';
+  try{localStorage.removeItem(OWN_KEY);sessionStorage.removeItem(OWN_KEY);
+    (document.getElementById('keyRemember').checked?localStorage:sessionStorage).setItem(OWN_KEY,obfuscate(v))}catch(e){}
+  document.getElementById('keyDialog').classList.add('hide');setKeyChip();boot();
+}
+function forgetKey(){try{localStorage.removeItem(OWN_KEY);sessionStorage.removeItem(OWN_KEY)}catch(e){}KEY='';KEY_SRC='';setKeyChip();askKey('请输入新的管理密钥')}
+function onUnauthorized(){
+  const was=KEY_SRC;KEY='';KEY_SRC='';
+  try{localStorage.removeItem(OWN_KEY);sessionStorage.removeItem(OWN_KEY)}catch(e){}
+  setKeyChip();
+  askKey('',was==='center'?'管理中心保存的密钥已失效，请手动输入一次':'密钥已失效，请重新输入');
+}
 
 // ---- http ----
 async function req(method,url,body,opts={}){
@@ -402,7 +464,7 @@ async function req(method,url,body,opts={}){
   if(body!==undefined){if(opts.raw){b=body}else{h['Content-Type']='application/json';b=JSON.stringify(body)}}
   const r=await fetch(url,{method,headers:h,body:b,cache:'no-store'});
   const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(e){data={raw:text}}
-  if(r.status===401&&!opts.key){if(KEY_SRC!=='center'){forgetKey()}else{try{sessionStorage.removeItem(CAP_KEY)}catch(e){}if(captureFromCenter())throw new Error('正在从管理中心重新取得密钥')}throw new Error('管理密钥无效（HTTP 401）')}
+  if(r.status===401&&!opts.key){onUnauthorized();throw new Error('管理密钥无效（HTTP 401）')}
   if(!r.ok){const m=(data&&(data.error||data.message))||text||('HTTP '+r.status);throw new Error(typeof m==='string'?m:JSON.stringify(m))}
   return data;
 }
@@ -410,6 +472,11 @@ const mg=(m,p,b,o)=>req(m,MG+p,b,o);
 const pl=(m,p,b)=>req(m,MG+'/'+PID+'/'+p,b);
 
 // ---- helpers ----
+// Buttons built from data carry their arguments as JSON in data-args and are
+// dispatched here, so names with quotes can never break out into script.
+const ACTS={refreshTok:(...a)=>refreshTok(...a),showCredits:(...a)=>showCredits(...a),showTasks:(...a)=>showTasks(...a),toggleAcct:(...a)=>toggleAcct(...a),delAcct:(...a)=>delAcct(...a),runJob:(...a)=>runJob(...a)};
+function A(...args){return esc(JSON.stringify(args))}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const f=ACTS[b.dataset.act];if(!f)return;let args=[];try{args=JSON.parse(b.dataset.args||'[]')}catch(err){}f(...args)});
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function toast(msg,bad){const t=document.createElement('div');if(bad)t.className='bad';t.textContent=msg;document.getElementById('toast').appendChild(t);setTimeout(()=>t.remove(),bad?7000:3500)}
 function copy(t){navigator.clipboard?.writeText(t).then(()=>toast('已复制'),()=>toast('复制失败',true))}
@@ -424,7 +491,7 @@ function acctName(id){const a=S.accounts.find(x=>x.id===id);return a?a.name:id}
 
 // ---- tabs ----
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
-function go(tab){S.tab=tab;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+function go(tab){if(!document.getElementById('tab-'+tab))tab='accounts';S.tab=tab;try{history.replaceState(null,'','#'+tab)}catch(e){}document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   document.querySelectorAll('main>section').forEach(s=>s.classList.toggle('hide',s.id!=='tab-'+tab));
   ({accounts:loadAccounts,credits:loadCredits,models:loadModels,tasks:openTasks,schedule:loadSchedule,logs:loadLogs,add:renderAdd})[tab]?.();}
 
@@ -467,11 +534,11 @@ function renderAccounts(){
       </div>
       ${last?`<div style="margin-bottom:8px">${last}</div>`:''}
       <div class="row">
-        ${a.source!=='key'?`<button class="btn sm" onclick="refreshTok('${esc(a.file)}')">刷新令牌</button>`:''}
-        ${a.source!=='key'?`<button class="btn sm" onclick="showCredits('${esc(a.id)}')">积分</button>`:''}
-        <button class="btn sm" onclick="showTasks('${esc(a.id)}')">任务</button>
-        <button class="btn sm" onclick="toggleAcct('${esc(a.file)}',${!a.disabled})">${a.disabled?'启用':'停用'}</button>
-        <button class="btn sm bad" onclick="delAcct('${esc(a.file)}','${esc(a.name)}')">删除</button>
+        ${a.source!=='key'?`<button class="btn sm" data-act="refreshTok" data-args="${A(a.file)}">刷新令牌</button>`:''}
+        ${a.source!=='key'?`<button class="btn sm" data-act="showCredits" data-args="${A(a.id)}">积分</button>`:''}
+        <button class="btn sm" data-act="showTasks" data-args="${A(a.id)}">任务</button>
+        <button class="btn sm" data-act="toggleAcct" data-args="${A(a.file,!a.disabled)}">${a.disabled?'启用':'停用'}</button>
+        <button class="btn sm bad" data-act="delAcct" data-args="${A(a.file,a.name)}">删除</button>
       </div></div>`}).join('');
 }
 document.getElementById('acctFilter').onchange=renderAccounts;
@@ -550,10 +617,13 @@ async function importTok(){
 }
 
 // ---- credits ----
-async function loadCredits(){
-  const box=document.getElementById('creditList');box.innerHTML='<div class="empty"><span class="spin"></span> 正在读取积分（每个账号都要问一次 WorkBuddy）…</div>';
+async function loadCredits(force){
+  const box=document.getElementById('creditList');
+  if(!box.children.length||box.querySelector('.empty,.note'))box.innerHTML='<div class="empty"><span class="spin"></span> 正在读取积分…</div>';
+  const asOf=document.getElementById('creditAsOf');if(asOf)asOf.innerHTML=force?'<span class="spin"></span> 正在向 WorkBuddy 重新读取…':'';
   try{
-    const r=await pl('GET','credits');const sm=r.summary||{};
+    const r=await pl('GET','credits'+(force===true?'?refresh=1':''));
+    if(asOf)asOf.textContent=r.as_of?('数据更新于 '+fmtTime(r.as_of)+'（'+rel(r.as_of)+'，缓存 '+Math.round((r.ttl_ms||300000)/60000)+' 分钟）'):'';const sm=r.summary||{};
     document.getElementById('creditStats').innerHTML=[['剩余积分（全部）',sm.left],['国内版剩余',sm.cn_left],['国际版剩余',sm.ai_left],['总额度',sm.total]].map(x=>`<div class="stat"><div class="k">${x[0]}</div><div class="v">${fmtNum(x[1])}</div></div>`).join('');
     const list=(r.accounts||[]).sort((a,b)=>(a.account===S.creditFocus?-1:b.account===S.creditFocus?1:0));
     if(!list.length){box.innerHTML='<div class="empty">没有账号</div>';return}
@@ -575,18 +645,31 @@ async function loadCredits(){
 // ---- models ----
 document.querySelectorAll('#modelBuild button').forEach(b=>b.onclick=()=>{S.modelBuild=b.dataset.b;document.querySelectorAll('#modelBuild button').forEach(x=>x.classList.toggle('on',x===b));loadModels()});
 async function loadModels(){
-  const rows=document.getElementById('modelRows');rows.innerHTML='<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
+  const rows=document.getElementById('modelRows');rows.innerHTML='<tr><td colspan="7" class="empty"><span class="spin"></span></td></tr>';
   try{
     const [r,st]=await Promise.all([pl('GET','models?build='+S.modelBuild),loadStatus()]);
     S.models=r;fillModelSettings(st.config);
     const live=r.live||r.builtin||[];
     document.getElementById('modelNote').innerHTML=(r.error?`<div class="note warn">${esc(r.error)}</div>`:`<div class="note">实时列表来自账号「${esc(r.account_name||'')}」的 /v3/config · 当前「只用免费模型」：<b>${r.free_only?'开':'关'}</b> · 请求声明版本 App ${esc(r.versions.app)} / CLI ${esc(r.versions.cli)} · SDK ${esc(r.sdk_os)}/${esc(r.sdk_arch)}</div>`);
-    rows.innerHTML=live.map(m=>`<tr><td class="mono">${esc(m.id)}</td><td>${esc(m.name||'')}</td><td>${m.context?fmtNum(m.context):'—'}</td>
+    const off=new Set((st.config&&st.config['disabled_models_'+S.modelBuild])||[]);S.modelOff=off;
+    rows.innerHTML=live.map(m=>`<tr class="${off.has(m.id)?'off':''}"><td><label class="toggle" title="${off.has(m.id)?'已禁用':'已启用'}"><input type="checkbox" class="mtoggle" data-id="${esc(m.id)}" ${off.has(m.id)?'':'checked'}><span></span></label></td><td class="mono">${esc(m.id)}</td><td>${esc(m.name||'')}</td><td>${m.context?fmtNum(m.context):'—'}</td>
       <td>${m.free?'<span class="badge ok">免费</span>':(m.rate!=null?'×'+esc(m.rate)+' 积分':'—')}${m.rateWas?' <span class="muted small">原 ×'+esc(m.rateWas)+'</span>':''}</td>
-      <td class="small">${(m.efforts||[]).map(esc).join(' / ')||'—'}${m.effort?' <span class="muted">默认 '+esc(m.effort)+'</span>':''}</td><td>${m.images?'✓':''}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">没有模型</td></tr>';
-    const tm=document.getElementById('testModel');tm.innerHTML=live.map(m=>`<option value="${esc(m.id)}">${esc(m.id)}${m.free?'（免费）':''}</option>`).join('');
+      <td class="small">${(m.efforts||[]).map(esc).join(' / ')||'—'}${m.effort?' <span class="muted">默认 '+esc(m.effort)+'</span>':''}</td><td>${m.images?'✓':''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">没有模型</td></tr>';
+    rows.querySelectorAll('.mtoggle').forEach(i=>i.onchange=()=>toggleModel(i));
+    const tm=document.getElementById('testModel');tm.innerHTML=live.filter(m=>!off.has(m.id)).map(m=>`<option value="${esc(m.id)}">${esc(m.id)}${m.free?'（免费）':''}</option>`).join('');
     loadApiKeys();
-  }catch(e){rows.innerHTML=`<tr><td colspan="6"><div class="note bad">${esc(e.message)}</div></td></tr>`}
+  }catch(e){rows.innerHTML=`<tr><td colspan="7"><div class="note bad">${esc(e.message)}</div></td></tr>`}
+}
+async function toggleModel(inp){
+  const id=inp.dataset.id,on=inp.checked,b=S.modelBuild,off=new Set(S.modelOff||[]);
+  on?off.delete(id):off.add(id);
+  inp.disabled=true;
+  try{await patchConfig({['disabled_models_'+b]:[...off]});S.modelOff=off;
+    inp.closest('tr').classList.toggle('off',!on);
+    toast((on?'已启用 ':'已禁用 ')+id+'（CPA 热重载后生效）');
+    const tm=document.getElementById('testModel');[...tm.options].forEach(o=>{if(o.value===id)o.remove()});
+  }catch(e){inp.checked=!on;toast('保存失败：'+e.message,true)}
+  finally{inp.disabled=false}
 }
 function fillModelSettings(c){
   if(!c)return;
@@ -643,7 +726,7 @@ function jobButtons(a){
   return `<table><thead><tr><th>日常任务</th><th>说明</th><th>上次结果</th><th></th></tr></thead><tbody>${jobs.map(j=>{const r=last[j.key];
     return `<tr><td><b>${esc(j.name)}</b>${j.on?' <span class="badge ok">已开启</span>':''}</td><td class="small muted">${esc(j.desc)}</td>
     <td class="small">${r?outcomeBadge(r.outcome)+' '+esc(r.message||'')+'<div class="muted">'+esc(fmtTime(r.at))+'</div>':'—'}</td>
-    <td><button class="btn sm ${j.key==='growth'?'pri':''}" onclick="runJob('${esc(a.id)}','${j.key}','')">${j.key==='growth'?'一键完成':'立即运行'}</button></td></tr>`}).join('')}</tbody></table>`;
+    <td><button class="btn sm ${j.key==='growth'?'pri':''}" data-act="runJob" data-args="${A(a.id,j.key,'')}">${j.key==='growth'?'一键完成':'立即运行'}</button></td></tr>`}).join('')}</tbody></table>`;
 }
 function renderTasks(r){
   const box=document.getElementById('taskBody');const a=r.account;let h='';
@@ -664,7 +747,7 @@ function renderTasks(r){
       const st=t.claimed?'<span class="badge ok">已领奖</span>':t.claimable?'<span class="badge warn">可领取</span>':t.locked?'<span class="badge">未解锁</span>':({not_accepted:'<span class="badge">未接取</span>',accepted:'<span class="badge">进行中</span>',completed:'<span class="badge warn">已完成</span>'})[t.accept_status]||esc(t.accept_status);
       const how=t.auto?`<span class="small">${esc(t.how)}</span>${t.chat?' <span class="badge">真实对话</span>':''}${t.night?' <span class="badge">23–08 点</span>':''}${t.mp?' <span class="badge">小程序</span>':''}`:`<span class="small" style="color:var(--warn)">需真人：${esc(t.human)}</span>`;
       const last=t.last?`<div class="small muted">${outcomeBadge(t.last.outcome)} ${esc(t.last.message||'')}</div>`:'';
-      const btn=t.claimed?'':(t.claimable?`<button class="btn sm pri" onclick="runJob('${esc(a.id)}','${t.job}','${esc(t.task_code)}')">领取</button>`:(t.auto?`<button class="btn sm" onclick="runJob('${esc(a.id)}','${t.job}','${esc(t.task_code)}')">执行</button>`:''));
+      const btn=t.claimed?'':(t.claimable?`<button class="btn sm pri" data-act="runJob" data-args="${A(a.id,t.job,t.task_code)}">领取</button>`:(t.auto?`<button class="btn sm" data-act="runJob" data-args="${A(a.id,t.job,t.task_code)}">执行</button>`:''));
       return `<tr><td><b>${esc(t.title||t.task_code)}</b><div class="small muted mono">${esc(t.task_code)}</div>${t.description?`<div class="small muted">${esc(t.description)}</div>`:''}${last}</td>
       <td>${t.target?t.current+'/'+t.target:'—'}</td><td class="small">${t.credit?'+'+t.credit+' 积分':''}${t.energy?'<br>+'+t.energy+' 能量':''}${t.reward_buddy?'<br>Buddy':''}</td><td>${st}</td><td>${how}</td><td>${btn}</td></tr>`}).join('')}</tbody></table></div>`;
     const cps=(S.status&&S.status.campaigns)||[];
@@ -744,6 +827,7 @@ async function clearLogs(){if(!confirm('清空运行记录？'))return;try{await
 setInterval(()=>{const d=new Date(Date.now()+8*3600e3);document.getElementById('clock').textContent='北京时间 '+d.toISOString().slice(11,16)},10000);
 document.getElementById('clock').textContent='北京时间 '+new Date(Date.now()+8*3600e3).toISOString().slice(11,16);
 document.getElementById('keyInput').addEventListener('keydown',e=>{if(e.key==='Enter')keySubmit()});
+{const h=location.hash.slice(1);if(h&&document.getElementById('tab-'+h))S.tab=h}
 async function boot(){
   try{await loadStatus();go(S.tab)}
   catch(e){document.getElementById('acctList').innerHTML=`<div class="note bad">${esc(e.message)}</div>`}

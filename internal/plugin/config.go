@@ -64,6 +64,10 @@ type Config struct {
 	// HideDsh takes DeepSeek Harness's name out of what goes upstream; on
 	// unless set false (magpie's hide_dsh).
 	HideDsh *bool `yaml:"hide_dsh" json:"hide_dsh"`
+	// DisabledCN / DisabledAI are model ids switched off per build: left out
+	// of the model list CPA is given and refused before anything is sent.
+	DisabledCN []string `yaml:"disabled_models_cn" json:"disabled_models_cn"`
+	DisabledAI []string `yaml:"disabled_models_ai" json:"disabled_models_ai"`
 	// Checkin is the China build's daily check-in (Buddy 加油站签到, the
 	// billing meter's daily-checkin), once a Beijing day. Off unless on, as
 	// magpie's switch.
@@ -96,6 +100,24 @@ func (c *Config) freeOnly(site *wb.Site) bool {
 		return *c.FreeOnlyCN
 	}
 	return c.FreeOnly
+}
+
+// disabled is the set of model ids switched off for a build.
+func (c *Config) disabled(site *wb.Site) map[string]bool {
+	list := c.DisabledCN
+	if site.AI {
+		list = c.DisabledAI
+	}
+	if len(list) == 0 {
+		return nil
+	}
+	out := make(map[string]bool, len(list))
+	for _, id := range list {
+		if id = strings.TrimSpace(id); id != "" {
+			out[id] = true
+		}
+	}
+	return out
 }
 
 func (c *Config) withDefaults() *Config {

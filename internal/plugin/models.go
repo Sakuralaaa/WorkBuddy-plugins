@@ -65,7 +65,11 @@ func modelInfo(site *wb.Site, m wb.Model) pluginapi.ModelInfo {
 
 func listInfos(site *wb.Site, list []wb.Model) []pluginapi.ModelInfo {
 	out := make([]pluginapi.ModelInfo, 0, len(list))
+	off := cfg().disabled(site)
 	for _, m := range list {
+		if off[m.ID] {
+			continue
+		}
 		out = append(out, modelInfo(site, m))
 	}
 	return out

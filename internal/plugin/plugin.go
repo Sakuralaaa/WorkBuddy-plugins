@@ -75,6 +75,8 @@ func configFields() []pluginapi.ConfigField {
 		{Name: "free_only", Type: b, Default: false, Description: "Free models only (both builds): list only models served at no cost and turn away any other request before it is sent. free_only_cn / free_only_ai set one build."},
 		{Name: "free_only_cn", Type: b, Description: "Free models only, WorkBuddy (China) alone."},
 		{Name: "free_only_ai", Type: b, Description: "Free models only, WorkBuddy AI alone."},
+		{Name: "disabled_models_cn", Type: pluginapi.ConfigFieldTypeArray, Description: "Model ids switched off for WorkBuddy (China): not listed, and refused if asked for."},
+		{Name: "disabled_models_ai", Type: pluginapi.ConfigFieldTypeArray, Description: "Model ids switched off for WorkBuddy AI."},
 		{Name: "hide_dsh", Type: b, Default: true, Description: "Take DeepSeek Harness's name out of what is sent (its opening line, checkout and Web GUI lines)."},
 		{Name: "checkin", Type: b, Default: false, Description: "China daily check-in (Buddy 加油站签到, 100 credits) once a Beijing day per account, as magpie's switch."},
 		{Name: "tasks", Type: o, Description: "Background benefit jobs, each off unless true: growth, campaigns, miniprogram, cat_travel, rewards, night, activity_report, intl_daily, intl_daily_web; claim (default true) claims what they earn. Easiest set on the plugin's WorkBuddy page."},

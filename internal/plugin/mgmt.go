@@ -101,7 +101,7 @@ func managementHandle(raw []byte) (any, error) {
 	case method == "GET" && path == base+"accounts":
 		return handleAccounts()
 	case method == "GET" && path == base+"credits":
-		return handleCredits(d, q.Get("account"))
+		return handleCredits(d, q.Get("account"), q.Get("refresh") != "")
 	case method == "GET" && path == base+"models":
 		return handleModels(d, q.Get("build"), q.Get("account"))
 	case method == "GET" && path == base+"tasks":
@@ -402,7 +402,41 @@ func creditsOf(ctx context.Context, d HostDoer, x acct) creditsView {
 	return v
 }
 
-func handleCredits(d HostDoer, account string) (any, error) {
+// Credits are read from WorkBuddy per account (there is no batch endpoint), so
+// each reading is kept for creditsTTL and served from memory until then. The
+// page asks with ?refresh=1 to force a fresh read.
+const creditsTTL = 5 * time.Minute
+
+type creditsEntry struct {
+	at time.Time
+	v  creditsView
+}
+
+var (
+	creditsMu    sync.Mutex
+	creditsCache = map[string]creditsEntry{}
+)
+
+func cachedCredits(id string) (creditsView, time.Time, bool) {
+	creditsMu.Lock()
+	defer creditsMu.Unlock()
+	e, ok := creditsCache[id]
+	if !ok || time.Since(e.at) > creditsTTL {
+		return creditsView{}, time.Time{}, false
+	}
+	return e.v, e.at, true
+}
+
+func storeCredits(id string, v creditsView) {
+	if v.Error != "" {
+		return
+	}
+	creditsMu.Lock()
+	creditsCache[id] = creditsEntry{at: time.Now(), v: v}
+	creditsMu.Unlock()
+}
+
+func handleCredits(d HostDoer, account string, refresh bool) (any, error) {
 	list, err := accounts()
 	if err != nil {
 		return replyErr(502, err.Error())
@@ -417,18 +451,28 @@ func handleCredits(d HostDoer, account string) (any, error) {
 		}
 	}
 	out := make([]creditsView, len(targets))
+	stamp := make([]int64, len(targets))
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 3)
+	sem := make(chan struct{}, 4)
 	for i, x := range targets {
 		wg.Add(1)
 		go func(i int, x acct) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
+			if !refresh {
+				if v, at, ok := cachedCredits(x.ID); ok {
+					out[i] = v
+					stamp[i] = at.UnixMilli()
+					return
+				}
+			}
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			// background callbacks: the management call's id ends with it
 			out[i] = creditsOf(ctx, HostDoer{}, x)
+			storeCredits(x.ID, out[i])
+			stamp[i] = time.Now().UnixMilli()
 		}(i, x)
 	}
 	wg.Wait()
@@ -444,7 +488,13 @@ func handleCredits(d HostDoer, account string) (any, error) {
 		}
 	}
 	_ = d
-	return reply(200, map[string]any{"accounts": out, "summary": sum})
+	var oldest int64
+	for _, t := range stamp {
+		if t > 0 && (oldest == 0 || t < oldest) {
+			oldest = t
+		}
+	}
+	return reply(200, map[string]any{"accounts": out, "summary": sum, "as_of": oldest, "ttl_ms": creditsTTL.Milliseconds()})
 }
 
 // ---- models --------------------------------------------------------------------

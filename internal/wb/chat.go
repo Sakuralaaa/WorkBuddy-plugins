@@ -27,6 +27,8 @@ const EdgeReads = 2 * 1024 * 1024
 type Options struct {
 	FreeOnly bool
 	HideDsh  bool
+	// Disabled model ids are refused before anything is sent.
+	Disabled map[string]bool
 }
 
 // Channel is one build's state for a run (magpie's makePlugin closure).
@@ -364,6 +366,13 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 	}
 	if opts.HideDsh && HideDsh(chat) {
 		changed = true
+	}
+	if len(opts.Disabled) > 0 && chat != nil {
+		if model := chat.String("model"); opts.Disabled[model] {
+			r := jsonResp(404, map[string]any{"error": map[string]any{"message": fmt.Sprintf("model %s is disabled in the plugin config (disabled_models_%s)", model, map[bool]string{true: "ai", false: "cn"}[site.AI]), "type": "invalid_request_error", "code": "model_disabled"}}, nil)
+			r.SignIn = SignInKept
+			return r, nil
+		}
 	}
 	if opts.FreeOnly {
 		model := ""
