@@ -1,6 +1,9 @@
 package plugin
 
 import (
+	"context"
+
+	"github.com/Sakuralaaa/WorkBuddy-plugins/internal/jobs"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -52,5 +55,20 @@ func TestStickyBindHop(t *testing.T) {
 	// A hop rebinds the session to the account now serving it.
 	if got := stickyBindings(); len(got) != 1 || got[0].AuthID != "auth-2" || got[0].Hops != 1 {
 		t.Fatalf("bindings %+v", got)
+	}
+}
+
+func TestSafeExecRecovers(t *testing.T) {
+	old := execJobFn
+	t.Cleanup(func() { execJobFn = old })
+	execJobFn = func(context.Context, *acct, string, string) jobs.Result {
+		var m map[string]int
+		m["x"] = 1
+		return jobs.Result{}
+	}
+	x := &acct{ID: "a"}
+	res := safeExec(context.Background(), x, "checkin", "")
+	if res.OK || res.Outcome != "failed" {
+		t.Fatalf("res %+v", res)
 	}
 }

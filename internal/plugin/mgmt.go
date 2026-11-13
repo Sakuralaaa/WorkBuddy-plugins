@@ -937,6 +937,11 @@ func handleCompensation(account string) (any, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() {
+				if p := recover(); p != nil {
+					rows[i].Error = fmt.Sprintf("查询时内部错误：%v", p)
+				}
+			}()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			c, err := client(ctx, &x)

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -386,7 +387,7 @@ func runJob(ctx context.Context, x *acct, key, task, trigger string) Run {
 		engine.Unlock()
 	}()
 	started := time.Now()
-	res := execJob(ctx, x, key, task)
+	res := safeExec(ctx, x, key, task)
 	if res.Job == "" {
 		res.Job = key
 	}
@@ -402,6 +403,22 @@ func runJob(ctx context.Context, x *acct, key, task, trigger string) Run {
 	hostLog(lvl, fmt.Sprintf("job %s %s: %s %s", key, x.Name, res.Outcome, res.Message), map[string]any{"auth": x.ID})
 	return run
 }
+
+// safeExec runs a job and turns a panic in it into a failed run. The plugin
+// lives inside CPA's process, so a panic left to reach the top of a job's
+// goroutine would take every route of CPA down with it.
+func safeExec(ctx context.Context, x *acct, key, task string) (res jobs.Result) {
+	defer func() {
+		if p := recover(); p != nil {
+			hostLog("error", fmt.Sprintf("job %s panicked: %v\n%s", key, p, debug.Stack()), map[string]any{"auth": x.ID})
+			res = jobs.Result{Job: key, At: time.Now(), Outcome: "failed", Message: fmt.Sprintf("任务内部错误（已拦截，不影响其他任务）：%v", p)}
+		}
+	}()
+	return execJobFn(ctx, x, key, task)
+}
+
+// execJobFn is execJob, swappable in tests.
+var execJobFn = execJob
 
 func execJob(ctx context.Context, x *acct, key, task string) jobs.Result {
 	fail := func(msg string) jobs.Result {
