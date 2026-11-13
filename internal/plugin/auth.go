@@ -54,8 +54,10 @@ func authParse(raw []byte) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		d := authDataOf(site, a, req.FileName)
-		d.StorageJSON = append([]byte(nil), req.RawJSON...)
+		d := authDataOf(site, normKey(a), req.FileName)
+		if a == normKey(a) {
+			d.StorageJSON = append([]byte(nil), req.RawJSON...)
+		}
 		return pluginapi.AuthParseResponse{Handled: true, Auth: d}, nil
 	}
 	if head.Type != "" && !ours(req.Provider) {

@@ -142,6 +142,7 @@ func accountFrom(provider, authID string, storage []byte, meta map[string]any) (
 	if err != nil {
 		return site, nil, err
 	}
+	a = normKey(a)
 	if site == nil {
 		site = wb.SiteFor(a.Type)
 	}
@@ -209,4 +210,19 @@ func sanitize(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// normKey completes a key credential written with its key alone
+// ({"type": ..., "source": "key", "key": ...}) as WorkBuddy's CLI sends one;
+// any other account is returned as it is.
+func normKey(a *wb.Account) *wb.Account {
+	if a == nil || a.Source != "key" || a.Key == "" || (a.Access != "" && a.UID != "") {
+		return a
+	}
+	k := wb.KeyAccount(a.Key)
+	if k == nil {
+		return a
+	}
+	k.Type = a.Type
+	return k
 }
