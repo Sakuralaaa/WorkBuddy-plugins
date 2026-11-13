@@ -34,6 +34,11 @@ type Options struct {
 	DeviceTokenFile string
 	// Disabled model ids are refused before anything is sent.
 	Disabled map[string]bool
+	// WebMode sends the international build's chats as the web app's
+	// browser would (webmode.go): browser User-Agent, Origin/Referer,
+	// no desktop fingerprint, no X-Device-Token, no prompt_cache_key,
+	// body uncompressed. Only the AI build; the CN build ignores it.
+	WebMode bool
 	// CacheKey gives each completion a prompt_cache_key of its own account
 	// and conversation, so a conversation's prefix is read from WorkBuddy's
 	// cache instead of being charged again.
@@ -362,6 +367,7 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 		}
 	}
 	began := a.Access
+	web := webModeOn(site, opts)
 	headers := http.Header{}
 	for k, v := range req.Header {
 		headers[k] = append([]string(nil), v...)
@@ -369,10 +375,15 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 	headers.Del("Authorization")
 	headers.Del("X-Api-Key")
 	headers.Del("Content-Length")
-	Sign(site, a, headers)
-	// The account's own token is set by Sign when it has one; the global
-	// and file sources fill the header in when it has none.
-	InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
+	if web {
+		// Web mode: the browser's headers, no device token at all.
+		SignWeb(site, a, headers)
+	} else {
+		Sign(site, a, headers)
+		// The account's own token is set by Sign when it has one; the global
+		// and file sources fill the header in when it has none.
+		InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
+	}
 
 	native := req.Native
 	p := Prepare(req.Body, native)
@@ -413,10 +424,19 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 	if completion && chat != nil && !NamesEffort(chat) && WithDefaultEffort(chat, c.effortList(ctx, d, a)) {
 		changed = true
 	}
-	ChatHeaders(site, headers)
+	if web {
+		ChatHeadersWeb(headers)
+	} else {
+		ChatHeaders(site, headers)
+	}
 	who := ScopeOf(a)
 	ids := Attend(headers, chat, sessionLimit(req.Session), who)
-	if opts.CacheKey && completion && chat != nil && !chat.Has("prompt_cache_key") {
+	if web {
+		// X-Root-Request-ID comes from a desktop capture; the web app
+		// does not send it.
+		stripWebRootID(headers)
+	}
+	if opts.CacheKey && !web && completion && chat != nil && !chat.Has("prompt_cache_key") {
 		chat.Set("prompt_cache_key", CacheKeyOf(a, headers.Get("X-Conversation-ID")))
 		changed = true
 	}
@@ -437,10 +457,11 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 			}
 		}
 		wire := b
-		if completion {
+		if completion && !web {
 			wire = Gzipped(b)
 			headers.Set("Content-Encoding", "gzip")
 		} else {
+			// Web mode sends the body plain, as a browser fetch does.
 			headers.Del("Content-Encoding")
 		}
 		headers.Set("Content-Type", "application/json")
@@ -500,13 +521,20 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 		}
 		renewed = true
 		a = ri.a
-		// The renewed account's own token replaces the old one's; without
-		// one the global/file sources fill in again.
-		headers.Del(deviceTokenHeader)
-		Sign(site, a, headers)
-		InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
+		if web {
+			SignWeb(site, a, headers)
+		} else {
+			// The renewed account's own token replaces the old one's; without
+			// one the global/file sources fill in again.
+			headers.Del(deviceTokenHeader)
+			Sign(site, a, headers)
+			InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
+		}
 		now := ScopeOf(a)
 		ids = Reattend(headers, ids, who, now)
+		if web {
+			stripWebRootID(headers)
+		}
 		who = now
 		again, _, err := post(b)
 		if err != nil {

@@ -95,9 +95,11 @@ CGO_ENABLED=1 go build -buildmode=c-shared -o workbuddy-magpie.so ./cmd/plugin
 
 ## 指纹与粘性会话
 
-请求指纹按桌面客户端的完整头族发出：`User-Agent: WorkBuddy/<版本> WorkBuddy/<版本> CLI/<版本>`、`X-IDE-Name/Version/Type`、`X-Agent-Intent/Purpose/Type/Runtime`、`X-Stainless-*`，对话另带 `X-Conversation-ID / X-Conversation-Request-ID / X-Root-Request-ID / X-Conversation-Message-ID`（同一会话同一轮次用同一组 id，换账号时按新账号重算，提示缓存不跨账号共享）以及 `prompt_cache_key`。`X-Device-Token` 三个来源按优先级取用：账号凭据里的 `device_token` → 配置 `device_token` → 配置 `device_token_file` 指定的文件（桌面端生成的 token，5 分钟缓存，超过 1KB 忽略）；三个都没有就不发这个头。
+请求指纹按桌面客户端的完整头族发出：`User-Agent: WorkBuddy/<版本> WorkBuddy/<版本> CLI/<版本>`、`X-IDE-Name/Version/Type`、`X-Agent-Intent/Purpose/Type/Runtime`、`X-Stainless-*`，对话另带 `X-Conversation-ID / X-Conversation-Request-ID / X-Root-Request-ID / X-Conversation-Message-ID`（同一会话同一轮次用同一组 id，换账号时按新账号重算，提示缓存不跨账号共享）以及 `prompt_cache_key`。这部分默认全开，没有总开关（网页模拟见下，是把国际版聊天换成浏览器形态，不是关掉指纹）。`X-Device-Token` 三个来源按优先级取用：账号凭据里的 `device_token` → 配置 `device_token` → 配置 `device_token_file` 指定的文件（桌面端生成的 token，5 分钟缓存，超过 1KB 忽略）；三个都没有就不发这个头。管理页「调度设置」里有「指纹模拟」一栏：粘贴 token 点「一键开启」就保存并立即生效（也可以只填 token 文件路径），已保存的 token 不会在页面上显示。
 
 粘性会话：会话 id 从请求头/元数据里取，取不到时再从请求体 `conversation_id` 或 `metadata.session_id` 里取。会话与首次服务的账号绑定记录在状态文件里（只存会话 id 的哈希，不存原文），24 小时滚动过期。注意：**选哪个账号是 CPA 路由决定的，插件改不了**——会话换账号时插件记录一次跳号并改绑到新账号（之后在新账号上的轮次不再重复计数）（状态页 `status` 的 `sticky` 字段可见）、记一条警告日志，然后继续用新账号的 id 发请求。想让一个会话真正钉在一个账号上，要在 CPA 侧用单账号的路由组/渠道。
+
+网页模拟：`ai_web_mode: true`（管理页「调度设置」→「指纹模拟」里也有开关）让国际版的聊天请求改按网页版浏览器的方式发：浏览器 User-Agent、`Origin: https://www.workbuddy.ai`、`Referer: https://www.workbuddy.ai/app`，不带桌面指纹（`X-IDE-*`、`X-Agent-*`、`X-Stainless-*`）、不带 `X-Device-Token`、不带 `prompt_cache_key`，请求体不压缩。`Authorization`、`X-Product`、`X-User-Id`、`X-Domain` 和 `X-Conversation-*` 照常发。只影响国际版的聊天请求，国内版、任务上报、额度查询都不动。注意：网页版自己其实不调 `/v2/chat/completions`——它走 `/console/as/*` 加 ACP 流，登录靠浏览器 cookie，那套流程插件没法复刻；这里模拟的是同一接口上的浏览器请求形态（这是直接读网页版自己的 JS 包确认的：`X-Device-Token`、`WorkBuddy/` UA、`prompt_cache_key` 在它的包里一次都没出现）。
 
 签到失败会按 15 分钟、30 分钟、1 小时、2 小时、4 小时（封顶）翻倍退避重试，直到当天落定（已领/已签/无资格/活动未开都算落定，当天不再跑）；以前失败一次就把时段标记为已执行，整天不再重试。
 
@@ -120,6 +122,7 @@ plugins:
       # sdk_os / sdk_arch
       # device_token: ""        # 全局 X-Device-Token；账号凭据里的 device_token 优先
       # device_token_file: ""   # 桌面端 token 文件路径（兜底来源）
+      # ai_web_mode: false      # 国际版聊天走网页模拟（浏览器请求头，不发桌面指纹）
       # tasks_concurrency: 2    # 调度器并行跑几个账号（1–4）
       scheduler: true           # false 关闭后台调度（手动运行仍可用）
       checkin: false

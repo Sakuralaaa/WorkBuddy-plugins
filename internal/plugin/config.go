@@ -15,7 +15,7 @@ import (
 const ID = "workbuddy-magpie"
 
 // Version is this build's version.
-var Version = "0.3.3"
+var Version = "0.3.5"
 
 // Tasks are the background benefit jobs ported from workbuddy2api-hub, each
 // off until switched on.
@@ -104,6 +104,11 @@ type Config struct {
 	// and DeviceTokenFile is the file fallback (see fingerprint.go).
 	DeviceToken     string `yaml:"device_token" json:"device_token,omitempty"`
 	DeviceTokenFile string `yaml:"device_token_file" json:"device_token_file,omitempty"`
+	// AIWebMode sends the international build's chats as the web app's
+	// browser would (webmode.go) instead of as the desktop client: no
+	// desktop fingerprint, no X-Device-Token, body uncompressed. Off
+	// unless on; the China build ignores it.
+	AIWebMode bool `yaml:"ai_web_mode" json:"ai_web_mode"`
 	// TasksConcurrency is how many accounts the scheduler runs in
 	// parallel (1–4, 2 unless set); each account still runs one job at
 	// a time.
