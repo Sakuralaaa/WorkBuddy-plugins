@@ -1,4 +1,6 @@
 This project ports logic from:
 - magpie-community/plugins, packages/workbuddy (MIT) — https://github.com/magpie-community/plugins
 - ardeyouxipianyi/workbuddy2api-hub (MIT) — https://github.com/ardeyouxipianyi/workbuddy2api-hub
+  (which credits L0NE-6/WorkBuddy-Daily and 88lin/workbuddy-auto-signin, both MIT)
+- linguo2625469/workbuddy2api-panel (MIT) — https://github.com/linguo2625469/workbuddy2api-panel
 It is a plugin for router-for-me/CLIProxyAPI.

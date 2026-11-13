@@ -4,9 +4,9 @@
     {
       "id": "workbuddy-magpie",
       "name": "WorkBuddy (CN + Intl)",
-      "description": "WorkBuddy China and WorkBuddy AI (international) as CLIProxyAPI providers: OAuth sign-in, token refresh, models, chat, credits quota and the China daily check-in. Ported from magpie.",
+      "description": "WorkBuddy China and WorkBuddy AI (international) as CLIProxyAPI providers, with a WorkBuddy page in the management panel: sign-in for both builds, accounts, credits, models and settings, and a task center (check-in, streak rewards, cat travel, growth tasks, campaigns, mini program, night owl, international daily activity). Ported from magpie, workbuddy2api-hub and workbuddy2api-panel.",
       "author": "Sakuralaaa",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "repository": "https://github.com/Sakuralaaa/WorkBuddy-plugins",
       "homepage": "https://github.com/Sakuralaaa/WorkBuddy-plugins",
       "license": "MIT",
@@ -14,7 +14,7 @@
       "locales": {
         "zh-CN": {
           "name": "WorkBuddy（国内版 + 国际版）",
-          "description": "把 WorkBuddy 国内版和国际版接入 CLIProxyAPI：OAuth 登录、令牌刷新、模型列表、对话、额度查询和国内版每日签到。移植自 magpie。"
+          "description": "把 WorkBuddy 国内版和国际版接入 CLIProxyAPI，并在管理面板里提供 WorkBuddy 专属页面：两个版本的登录、账号管理、积分、模型与设置，以及任务中心（签到、连登管家、猫猫旅行、成长任务、运营活动、小程序任务、夜猫子、国际版每日活跃）。"
         }
       }
     }
