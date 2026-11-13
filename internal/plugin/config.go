@@ -2,8 +2,8 @@ package plugin
 
 import (
 	"strings"
-	"time"
 	"sync/atomic"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
