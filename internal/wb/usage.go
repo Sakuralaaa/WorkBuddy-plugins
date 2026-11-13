@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -558,25 +559,41 @@ func PackagesOf(ctx context.Context, d Doer, site *Site, a *Account, now int64) 
 		{"/billing/meter/get-user-resource-paid-packages", map[string]any{"PackageCodes": PaidCodes, "NeedRenewInfo": true}},
 		{"/billing/meter/get-user-resource-free-packages", map[string]any{"PackageCodes": FreeCodes, "SlicePeriodStartTime": day + " 00:00:00", "SlicePeriodEndTime": day + " 23:59:59"}},
 	}
+	// The paid and free lists are asked at once; each is paged on its own.
+	got := make([][]map[string]any, len(lists))
+	errs := make([]error, len(lists))
+	var wg sync.WaitGroup
+	for i, l := range lists {
+		wg.Add(1)
+		go func(i int, path string, extra map[string]any) {
+			defer wg.Done()
+			for page := 1; page <= 10; page++ {
+				body := map[string]any{"PageNumber": page, "PageSize": 200, "Status": []int{0, 3}}
+				for k, v := range extra {
+					body[k] = v
+				}
+				var res struct {
+					Accounts   []map[string]any `json:"Accounts"`
+					TotalCount float64          `json:"TotalCount"`
+				}
+				if err := Meter(ctx, d, site, a, path, body, &res); err != nil {
+					errs[i] = err
+					return
+				}
+				got[i] = append(got[i], res.Accounts...)
+				if len(res.Accounts) < 200 || float64(len(got[i])) >= res.TotalCount {
+					return
+				}
+			}
+		}(i, l.path, l.extra)
+	}
+	wg.Wait()
 	var out []map[string]any
-	for _, l := range lists {
-		for page := 1; page <= 10; page++ {
-			body := map[string]any{"PageNumber": page, "PageSize": 200, "Status": []int{0, 3}}
-			for k, v := range l.extra {
-				body[k] = v
-			}
-			var got struct {
-				Accounts   []map[string]any `json:"Accounts"`
-				TotalCount float64          `json:"TotalCount"`
-			}
-			if err := Meter(ctx, d, site, a, l.path, body, &got); err != nil {
-				return nil, err
-			}
-			out = append(out, got.Accounts...)
-			if len(got.Accounts) < 200 || float64(len(out)) >= got.TotalCount {
-				break
-			}
+	for i := range lists {
+		if errs[i] != nil {
+			return nil, errs[i]
 		}
+		out = append(out, got[i]...)
 	}
 	return out, nil
 }

@@ -54,26 +54,45 @@ main{padding:22px 24px 56px;max-width:1320px;margin:0 auto}
 section{animation:fade .18s ease}
 @keyframes fade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
-.card h2{font-size:15px;margin:0 0 14px;font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:-.01em}
-.card h3{font-size:13px;margin:16px 0 10px;font-weight:600;color:var(--sub);text-transform:none}
+.card h2{font-size:15px;margin:0 0 16px;min-height:34px;font-weight:650;display:flex;align-items:center;gap:8px;flex-wrap:wrap;letter-spacing:-.01em}
+.card h3{font-size:13px;margin:20px 0 10px;font-weight:600;color:var(--sub);text-transform:none}
 .card>h2+p{margin-top:-6px}
+.card h2 .tabs2{margin:0}
+.card>.note:last-child,.card>p:last-child{margin-bottom:0}
+.card-foot{display:flex;align-items:center;gap:10px;margin:18px -20px -18px;padding:14px 20px;border-top:1px solid var(--line);background:var(--soft);border-radius:0 0 var(--radius) var(--radius)}
+.card-foot .btn{min-width:96px}
+.form-grid{display:grid;gap:14px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.panel{border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px 16px 4px;background:var(--bg2)}
+html[data-theme=dark] .panel{background:var(--soft)}
+.panel h4{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.panel h4 small{font-weight:400;color:var(--faint);font-size:12px}
+.panel .field input,.panel .field select{width:100%}
+.setting{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:34px;margin-bottom:12px;cursor:pointer;user-select:none;font-size:13px}
+.setting>span:first-child{display:flex;flex-direction:column;line-height:1.35}
+.setting small{color:var(--faint);font-size:12px}
+.settings-row{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-bottom:16px}
+.settings-row .setting{margin:0;padding:8px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg2)}
+html[data-theme=dark] .settings-row .setting{background:var(--soft)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.toolbar>select,.toolbar>input{min-width:0}
+@media (max-width:1000px){.form-grid{grid-template-columns:1fr}}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(310px,1fr))}
-.stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));margin-bottom:16px}
+.stats{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:16px}
 .stat{position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);overflow:hidden}
 .stat:after{content:"";position:absolute;right:-18px;top:-18px;width:64px;height:64px;border-radius:50%;background:var(--pri-soft);opacity:.7}
 .stat .k{position:relative;z-index:1;color:var(--sub);font-size:12px;font-weight:500}
 .stat .v{position:relative;z-index:1;font-size:24px;font-weight:700;margin-top:4px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 
 /* buttons */
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--card);color:var(--text);padding:6px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;line-height:1;border:1px solid var(--line2);background:var(--card);color:var(--text);padding:6px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;transition:background .15s,border-color .15s,color .15s,box-shadow .15s,transform .05s}
 .btn:hover{background:var(--hover);border-color:var(--line2)}
 .btn:active{transform:translateY(1px)}
 .btn:focus-visible{outline:0;box-shadow:var(--ring)}
 .btn.pri{background:linear-gradient(180deg,color-mix(in srgb,var(--pri) 92%,#fff),var(--pri));border-color:transparent;color:#fff;box-shadow:0 1px 2px rgba(16,24,40,.12),inset 0 1px 0 rgba(255,255,255,.15)}
 .btn.pri:hover{filter:brightness(1.06);color:#fff}
 .btn.bad{color:var(--bad)}.btn.bad:hover{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 40%,var(--line))}
-.btn.sm{padding:3px 10px;font-size:12px;border-radius:7px}
+.btn.sm{height:28px;padding:0 10px;font-size:12px;border-radius:7px}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--sub)}.btn.ghost:hover{background:var(--hover);color:var(--text)}
 .btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 
@@ -90,12 +109,17 @@ th{color:var(--faint);font-weight:600;font-size:12px;background:var(--soft);posi
 th:first-child{border-top-left-radius:var(--radius-sm)}th:last-child{border-top-right-radius:var(--radius-sm)}
 tbody tr{transition:background .12s}tbody tr:hover{background:var(--hover)}
 tr:last-child td{border-bottom:0}
-tr.off td:not(:first-child){opacity:.45;text-decoration:line-through;text-decoration-color:var(--faint)}
+tr.off td:not(:first-child){color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
+tr.off .badge{opacity:.6}
+td .toggle{display:block}
+#creditList{align-items:start}
+td input+span,td input+.small{margin-left:8px}
 div[style*="overflow:auto"]{border:1px solid var(--line);border-radius:var(--radius-sm)}
 .muted{color:var(--sub)}.small{font-size:12px}
 .mono{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;font-size:12px}
 
 /* forms */
+input[type=text],input[type=password],input[type=number],select{height:34px}
 input[type=text],input[type=password],input[type=number],select,textarea{background:var(--card);color:var(--text);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:7px 11px;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit}
 select{padding-right:28px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238b919c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
 input:hover,select:hover,textarea:hover{border-color:color-mix(in srgb,var(--pri) 35%,var(--line2))}
@@ -104,7 +128,7 @@ input[type=file]{font-size:13px;color:var(--sub)}
 input[type=file]::file-selector-button{border:1px solid var(--line2);background:var(--card);color:var(--text);padding:6px 12px;border-radius:var(--radius-sm);margin-right:10px;cursor:pointer}
 textarea{width:100%;min-height:130px;font-family:ui-monospace,Menlo,Consolas,monospace;resize:vertical}
 input[type=checkbox]{accent-color:var(--pri)}
-label.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-select:none;font-size:13px}
+label.sw{display:inline-flex;align-items:flex-start;gap:10px;line-height:20px;cursor:pointer;user-select:none;font-size:13px}
 .toggle{position:relative;display:inline-block;width:36px;height:20px;flex:none;vertical-align:middle}
 .toggle input{opacity:0;width:0;height:0;position:absolute}
 .toggle span{position:absolute;inset:0;background:var(--line2);border-radius:20px;transition:.2s}
@@ -124,20 +148,25 @@ label.sw{display:inline-flex;align-items:center;gap:10px;cursor:pointer;user-sel
 .acct{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;background:var(--card);transition:border-color .15s,box-shadow .15s,transform .15s;display:flex;flex-direction:column}
 .acct:hover{border-color:var(--line2);box-shadow:var(--shadow-lg);transform:translateY(-1px)}
 .acct .name{font-weight:650;font-size:15px;word-break:break-all;letter-spacing:-.01em}
+.acct>.row:first-child{min-height:24px}
+.acct details.pkgs{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line)}
+.acct details.pkgs summary{padding:2px 0}
 .acct>.row:last-child{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line);gap:6px}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:12px;margin:10px 0}
 .kv span:nth-child(odd){color:var(--faint)}
 .kv span:nth-child(even){word-break:break-all}
 
 /* pill tabs */
-.tabs2{display:inline-flex;gap:2px;margin-bottom:14px;flex-wrap:wrap;padding:3px;background:var(--soft);border:1px solid var(--line);border-radius:11px}
-.tabs2 button{border:0;background:transparent;color:var(--sub);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
+.tabs2{display:inline-flex;align-items:center;gap:2px;margin-bottom:14px;flex-wrap:wrap;padding:2px;background:var(--soft);border:1px solid var(--line);border-radius:11px}
+.tabs2 button{border:0;background:transparent;color:var(--sub);height:28px;padding:0 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:.15s}
 .tabs2 button:hover{color:var(--text)}
 .tabs2 button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow);font-weight:600}
 .tabs2+.tabs2{margin-left:8px}
+#tab-add .tabs2{display:flex;width:max-content;max-width:100%}
+#tab-add .tabs2+.tabs2{margin-left:0}
 
 /* notes */
-.note{display:flex;gap:8px;align-items:flex-start;padding:10px 14px;border-radius:var(--radius-sm);background:var(--soft);color:var(--sub);font-size:13px;margin-bottom:14px;border:1px solid var(--line)}
+.note{display:block;padding:10px 14px;line-height:1.65;border-radius:var(--radius-sm);background:var(--soft);color:var(--sub);font-size:13px;margin-bottom:14px;border:1px solid var(--line)}
 .note.warn{background:var(--warn-soft);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 22%,transparent)}
 .note.bad{background:var(--bad-soft);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 22%,transparent)}
 .note.ok{background:var(--ok-soft);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 22%,transparent)}
@@ -223,7 +252,7 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
       </div>
       <div id="m-key" class="hide">
         <p class="muted">在 <a id="keysLink" target="_blank" rel="noopener"></a> 创建 API Key。先由插件向 WorkBuddy 校验，再通过 CPA 的凭据上传接口保存。API Key 账号没有积分查询与签到/任务。</p>
-        <div class="row"><input type="password" id="apiKey" placeholder="ck_ / pt_ / sk-…" style="flex:1;min-width:240px"><button class="btn pri" onclick="addKey()">校验并保存</button></div>
+        <div class="toolbar"><input type="password" id="apiKey" placeholder="ck_ / pt_ / sk-…" style="flex:1;min-width:240px"><button class="btn pri" onclick="addKey()">校验并保存</button></div>
         <div id="keyMsg" style="margin-top:10px"></div>
       </div>
       <div id="m-import" class="hide">
@@ -255,35 +284,35 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
     <div class="card">
       <h2>模型与请求设置</h2>
       <div class="note">保存时写入 CPA 配置 <span class="mono">plugins.configs.workbuddy-magpie</span>（调用 CPA 自带的 <span class="mono">PATCH /v0/management/plugins/workbuddy-magpie/config</span>），CPA 随即热重载插件，无需重启。</div>
-      <div class="grid">
-        <div>
-          <h3>免费模型</h3>
-          <label class="sw"><span class="toggle"><input type="checkbox" id="s_free_only"><span></span></span>只用免费模型（两个版本）</label>
-          <div class="field" style="margin-top:10px"><span>国内版单独设置</span><select id="s_free_only_cn"><option value="">跟随上面</option><option value="true">只用免费</option><option value="false">不限制</option></select></div>
+      <div class="form-grid">
+        <div class="panel">
+          <h4>免费模型</h4>
+          <label class="setting"><span>只用免费模型<small>国内版与国际版都生效</small></span><span class="toggle"><input type="checkbox" id="s_free_only"><span></span></span></label>
+          <div class="field"><span>国内版单独设置</span><select id="s_free_only_cn"><option value="">跟随上面</option><option value="true">只用免费</option><option value="false">不限制</option></select></div>
           <div class="field"><span>国际版单独设置</span><select id="s_free_only_ai"><option value="">跟随上面</option><option value="true">只用免费</option><option value="false">不限制</option></select></div>
-          <label class="sw"><span class="toggle"><input type="checkbox" id="s_hide_dsh"><span></span></span>隐藏 DeepSeek Harness 名称（hide_dsh）</label>
+          <label class="setting"><span>隐藏 DeepSeek Harness 名称<small>hide_dsh</small></span><span class="toggle"><input type="checkbox" id="s_hide_dsh"><span></span></span></label>
         </div>
-        <div>
-          <h3>客户端版本（留空用默认）</h3>
+        <div class="panel">
+          <h4>客户端版本 <small>留空用默认</small></h4>
           <div class="field"><span>国内版 App 版本</span><input type="text" id="s_cn_app_version" placeholder="5.9.3"></div>
           <div class="field"><span>国内版 CLI 版本</span><input type="text" id="s_cn_cli_version" placeholder="2.165.0"></div>
           <div class="field"><span>国际版 App 版本</span><input type="text" id="s_ai_app_version" placeholder="5.9.4"></div>
           <div class="field"><span>国际版 CLI 版本</span><input type="text" id="s_ai_cli_version" placeholder="2.165.0"></div>
         </div>
-        <div>
-          <h3>SDK 平台标识</h3>
-          <div class="field"><span>X-Stainless-OS（sdk_os）</span><input type="text" id="s_sdk_os" placeholder="跟随主机，如 MacOS / Windows"></div>
-          <div class="field"><span>X-Stainless-Arch（sdk_arch）</span><input type="text" id="s_sdk_arch" placeholder="跟随主机，如 arm64 / x64"></div>
+        <div class="panel">
+          <h4>SDK 平台标识 <small>留空跟随主机</small></h4>
+          <div class="field"><span>X-Stainless-OS（sdk_os）</span><input type="text" id="s_sdk_os" placeholder="如 MacOS / Windows"></div>
+          <div class="field"><span>X-Stainless-Arch（sdk_arch）</span><input type="text" id="s_sdk_arch" placeholder="如 arm64 / x64"></div>
         </div>
       </div>
-      <div class="row" style="margin-top:10px"><button class="btn pri" onclick="saveModelSettings()">保存设置</button><span id="msSaved" class="muted small"></span></div>
+      <div class="card-foot"><button class="btn pri" onclick="saveModelSettings()">保存设置</button><span id="msSaved" class="muted small"></span></div>
     </div>
     <div class="card">
       <h2>测试模型</h2>
-      <p class="muted small">通过 CPA 自己的 <span class="mono">/v1/chat/completions</span> 发送，使用 CPA 配置里的客户端 api-keys（与平常调用一样）。</p>
-      <div class="row">
-        <select id="testKey" style="min-width:160px"></select>
-        <select id="testModel" style="min-width:200px"></select>
+      <p class="muted small" style="margin:-8px 0 14px">通过 CPA 自己的 <span class="mono">/v1/chat/completions</span> 发送，使用 CPA 配置里的客户端 api-keys（与平常调用一样）。</p>
+      <div class="toolbar">
+        <select id="testKey" style="width:200px"></select>
+        <select id="testModel" style="width:220px"></select>
         <input type="text" id="testPrompt" value="你好，用一句话介绍你自己。" style="flex:1;min-width:200px">
         <button class="btn pri" onclick="testModel()">发送</button>
       </div>
@@ -312,13 +341,13 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
     <div class="card">
       <h2>调度设置（北京时间）</h2>
       <div class="note">保存到 CPA 配置 <span class="mono">plugins.configs.workbuddy-magpie</span>，立即生效。调度器每分钟检查一次：到了设定时刻且该时段还没跑过就执行；签到、活跃上报、国际版每日活跃一天成功一次后当天不再重复。</div>
-      <div class="row" style="gap:24px;margin-bottom:12px">
-        <label class="sw"><span class="toggle"><input type="checkbox" id="c_scheduler"><span></span></span>启用后台调度</label>
-        <label class="sw"><span class="toggle"><input type="checkbox" id="c_claim"><span></span></span>自动领奖（claim）</label>
-        <label class="sw"><span class="toggle"><input type="checkbox" id="c_intl_daily_web"><span></span></span>国际版每日活跃包含网页通道（真实云端会话）</label>
+      <div class="settings-row">
+        <label class="setting"><span>启用后台调度</span><span class="toggle"><input type="checkbox" id="c_scheduler"><span></span></span></label>
+        <label class="setting"><span>自动领奖<small>claim</small></span><span class="toggle"><input type="checkbox" id="c_claim"><span></span></span></label>
+        <label class="setting"><span>国际版每日活跃含网页通道<small>真实云端会话</small></span><span class="toggle"><input type="checkbox" id="c_intl_daily_web"><span></span></span></label>
       </div>
-      <table><thead><tr><th style="width:70px">开关</th><th>任务</th><th>适用</th><th>时间</th></tr></thead><tbody id="schedRows"></tbody></table>
-      <div class="row" style="margin-top:12px"><button class="btn pri" onclick="saveSchedule()">保存</button><span id="schedSaved" class="muted small"></span></div>
+      <div style="overflow:auto"><table><thead><tr><th style="width:70px">开关</th><th>任务</th><th>适用</th><th>时间</th></tr></thead><tbody id="schedRows"></tbody></table></div>
+      <div class="card-foot"><button class="btn pri" onclick="saveSchedule()">保存</button><span id="schedSaved" class="muted small"></span></div>
     </div>
   </section>
 
@@ -339,7 +368,7 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
   <p class="muted small" id="keyWhy"></p>
   <div class="field"><span>管理密钥（secret-key）</span><input type="password" id="keyInput" autocomplete="off" spellcheck="false"></div>
   <div class="err hide" id="keyErr"></div>
-  <label class="sw small"><input type="checkbox" id="keyRemember"> 在本浏览器记住（仅简单混淆，不是加密；不勾选则关闭标签页即忘记）</label>
+  <label class="sw small"><input type="checkbox" id="keyRemember" style="margin:3px 0 0;flex:none"> 在本浏览器记住（仅简单混淆，不是加密；不勾选则关闭标签页即忘记）</label>
   <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn pri" id="keyOk" onclick="keySubmit()">确定</button></div>
 </div></div>
 <script>
@@ -633,13 +662,25 @@ async function loadCredits(force){
         const label={'Credits':'套餐积分','Extra credits':'额外积分','Total credits':'合计','Prepaid credits':'预付积分'}[w.name]||w.name;
         return `<div style="margin:8px 0"><div class="row small"><b>${esc(label)}</b><span class="spacer"></span><span class="muted">${esc(w.display||'')}</span></div>
         ${w.balance==null?`<div class="bar"><i class="${cls}" style="width:${pct}%"></i></div>`:''}
-        <div class="small muted">${w.resetsAt?'重置 '+esc(fmtTime(w.resetsAt)):''}${w.runsOutAt?' · 到期 '+esc(fmtTime(w.runsOutAt))+(w.runsOut?'（'+fmtNum(w.runsOut)+' 积分）':''):''}${w.models&&w.models.length?' · 仅限 '+esc(w.models.join(', ')):''}</div></div>`}).join('');
-      const pk=(c.packages||[]).filter(p=>p.size>0);
-      const pks=pk.length?`<details><summary>积分包 ${pk.length} 个</summary><table style="margin-top:6px"><thead><tr><th>名称</th><th>剩余/总量</th><th>到期</th></tr></thead><tbody>${pk.map(p=>`<tr><td>${esc(p.name)}${p.reason?'<div class="small muted">'+esc(p.reason)+'</div>':''}</td><td>${fmtNum(p.remain)} / ${fmtNum(p.size)}</td><td class="small">${p.expire_at?esc(fmtTime(p.expire_at))+'<br><span class="muted">'+rel(p.expire_at)+'</span>':'—'}</td></tr>`).join('')}</tbody></table></details>`:'';
+        <div class="small muted" style="min-height:19px">${w.resetsAt?'重置 '+esc(fmtTime(w.resetsAt)):''}${w.runsOutAt?' · 到期 '+esc(fmtTime(w.runsOutAt))+(w.runsOut?'（'+fmtNum(w.runsOut)+' 积分）':''):''}${w.models&&w.models.length?' · 仅限 '+esc(w.models.join(', ')):''}</div></div>`}).join('');
+      const pks=c.error?'':`<details class="pkgs" data-acct="${esc(c.account)}"><summary>积分包明细</summary><div class="pkgBody small muted" style="margin-top:6px"></div></details>`;
       return `<div class="acct"><div class="row">${buildBadge(c.build)} <span class="badge">${esc(u.plan||'—')}</span><span class="spacer"></span>${c.left!=null?`<b>${fmtNum(c.left)}</b><span class="muted small">剩余</span>`:''}</div>
         <div class="name" style="margin:6px 0">${esc(c.name)}</div>
         ${c.error?`<div class="note bad">${esc(c.error)}</div>`:''}${wins||(!c.error?'<div class="muted small">没有额度信息</div>':'')}${pks}</div>`}).join('');
+    S.pkgForce=force===true;
+    box.querySelectorAll('details.pkgs').forEach(d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.loaded)loadPkgs(d)}));
   }catch(e){box.innerHTML=`<div class="note bad">${esc(e.message)}</div>`}
+}
+
+async function loadPkgs(d){
+  const body=d.querySelector('.pkgBody');d.dataset.loaded='1';
+  body.innerHTML='<span class="spin"></span> 正在读取积分包…';
+  try{
+    const r=await pl('GET','credits/packages?account='+encodeURIComponent(d.dataset.acct)+(S.pkgForce?'&refresh=1':''));
+    const pk=(r.packages||[]).filter(p=>p.size>0);
+    body.classList.remove('muted');
+    body.innerHTML=pk.length?`<div style="overflow:auto"><table><thead><tr><th>名称</th><th>剩余 / 总量</th><th>到期</th></tr></thead><tbody>${pk.map(p=>`<tr><td>${esc(p.name)}${p.reason?'<div class="small muted">'+esc(p.reason)+'</div>':''}</td><td>${fmtNum(p.remain)} / ${fmtNum(p.size)}</td><td class="small">${p.expire_at?esc(fmtTime(p.expire_at))+'<br><span class="muted">'+rel(p.expire_at)+'</span>':'—'}</td></tr>`).join('')}</tbody></table></div>`:'<span class="muted">没有积分包</span>';
+  }catch(e){delete d.dataset.loaded;body.innerHTML=`<div class="note bad" style="margin:0">${esc(e.message)}</div>`}
 }
 
 // ---- models ----

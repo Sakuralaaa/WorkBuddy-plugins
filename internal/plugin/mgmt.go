@@ -36,7 +36,8 @@ var routes = []route{
 	{"GET", base + "status", "WorkBuddy: scheduler, running jobs, last results and run history"},
 	{"POST", base + "run", "WorkBuddy: run jobs now ({account, job, task}; empty account = every due job)"},
 	{"GET", base + "accounts", "WorkBuddy: sign-in details of every WorkBuddy credential"},
-	{"GET", base + "credits", "WorkBuddy: credits windows and packages (?account=)"},
+	{"GET", base + "credits", "WorkBuddy: credits windows of every account (?account=&refresh=1)"},
+	{"GET", base + "credits/packages", "WorkBuddy: an account's credit packages (?account=&refresh=1)"},
 	{"GET", base + "models", "WorkBuddy: live model list of a build (?build=cn|ai&account=)"},
 	{"GET", base + "tasks", "WorkBuddy: an account's task center (?account=)"},
 	{"POST", base + "keys/check", "WorkBuddy: check an API key with WorkBuddy before it is saved"},
@@ -102,6 +103,8 @@ func managementHandle(raw []byte) (any, error) {
 		return handleAccounts()
 	case method == "GET" && path == base+"credits":
 		return handleCredits(d, q.Get("account"), q.Get("refresh") != "")
+	case method == "GET" && path == base+"credits/packages":
+		return handlePackages(q.Get("account"), q.Get("refresh") != "")
 	case method == "GET" && path == base+"models":
 		return handleModels(d, q.Get("build"), q.Get("account"))
 	case method == "GET" && path == base+"tasks":
@@ -382,23 +385,6 @@ func creditsOf(ctx context.Context, d HostDoer, x acct) creditsView {
 	if have {
 		v.Left, v.Total = &left, &total
 	}
-	if !x.A.IsKey() {
-		if a := heldAccount(x.ID); a != nil {
-			x.A = newest(x.ID, x.A)
-		}
-		if pk, err := wb.PackagesOf(ctx, d, x.Site, x.A, time.Now().UnixMilli()); err == nil {
-			for _, p := range pk {
-				v.Packages = append(v.Packages, PackageView(p))
-			}
-			sort.SliceStable(v.Packages, func(i, j int) bool {
-				a, b := v.Packages[i].ExpireAt, v.Packages[j].ExpireAt
-				if a == 0 {
-					return false
-				}
-				return b == 0 || a < b
-			})
-		}
-	}
 	return v
 }
 
@@ -453,7 +439,7 @@ func handleCredits(d HostDoer, account string, refresh bool) (any, error) {
 	out := make([]creditsView, len(targets))
 	stamp := make([]int64, len(targets))
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 4)
+	sem := make(chan struct{}, 8)
 	for i, x := range targets {
 		wg.Add(1)
 		go func(i int, x acct) {
@@ -495,6 +481,70 @@ func handleCredits(d HostDoer, account string, refresh bool) (any, error) {
 		}
 	}
 	return reply(200, map[string]any{"accounts": out, "summary": sum, "as_of": oldest, "ttl_ms": creditsTTL.Milliseconds()})
+}
+
+// Packages are read only when the page opens an account's list: two more
+// requests per account that the totals do not need. Kept like the totals.
+var (
+	pkgMu    sync.Mutex
+	pkgCache = map[string]struct {
+		at time.Time
+		v  []pkgView
+	}{}
+)
+
+func handlePackages(account string, refresh bool) (any, error) {
+	list, err := accounts()
+	if err != nil {
+		return replyErr(502, err.Error())
+	}
+	var x *acct
+	for i := range list {
+		if list[i].ID == account || list[i].Index == account {
+			x = &list[i]
+			break
+		}
+	}
+	if x == nil || x.A == nil {
+		return replyErr(404, "没有这个账号")
+	}
+	if x.A.IsKey() {
+		return reply(200, map[string]any{"account": x.ID, "packages": []pkgView{}})
+	}
+	if !refresh {
+		pkgMu.Lock()
+		e, ok := pkgCache[x.ID]
+		pkgMu.Unlock()
+		if ok && time.Since(e.at) <= creditsTTL {
+			return reply(200, map[string]any{"account": x.ID, "packages": e.v, "as_of": e.at.UnixMilli()})
+		}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	a := newest(x.ID, x.A)
+	pk, err := wb.PackagesOf(ctx, HostDoer{}, x.Site, a, time.Now().UnixMilli())
+	if err != nil {
+		return replyErr(502, err.Error())
+	}
+	out := make([]pkgView, 0, len(pk))
+	for _, p := range pk {
+		out = append(out, PackageView(p))
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		a, b := out[i].ExpireAt, out[j].ExpireAt
+		if a == 0 {
+			return false
+		}
+		return b == 0 || a < b
+	})
+	now := time.Now()
+	pkgMu.Lock()
+	pkgCache[x.ID] = struct {
+		at time.Time
+		v  []pkgView
+	}{now, out}
+	pkgMu.Unlock()
+	return reply(200, map[string]any{"account": x.ID, "packages": out, "as_of": now.UnixMilli()})
 }
 
 // ---- models --------------------------------------------------------------------
