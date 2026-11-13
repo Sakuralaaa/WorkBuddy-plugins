@@ -707,23 +707,50 @@ func handleModels(d HostDoer, build, account string) (any, error) {
 		return reply(200, resp)
 	}
 	var pick *acct
+	var mine, disabled, keyOnly int
 	for i := range list {
 		x := &list[i]
-		if x.Site != site || x.A == nil || x.Disabled {
+		if x.Site != site || x.A == nil {
+			continue
+		}
+		mine++
+		if x.Disabled {
+			disabled++
 			continue
 		}
 		if account != "" && x.ID != account {
 			continue
 		}
 		if x.A.IsKey() && !wb.RemoteConfig(x.A.Key) {
+			keyOnly++
 			continue
 		}
 		pick = x
 		break
 	}
-	if pick == nil {
-		resp["error"] = "没有可用的" + site.Name + "账号读取实时模型，下面是内置表"
+	// fallback: the last list read, else the built-in table
+	fallback := func(why string) (any, error) {
+		if c, ok := cachedModels(buildOf(site)); ok {
+			resp["live"] = c.Live
+			resp["cached_at"] = c.At
+			resp["account_name"] = c.AccountName
+			resp["error"] = why + "，下面是 " + time.UnixMilli(c.At).In(time.FixedZone("CST", 8*3600)).Format("01-02 15:04") + " 读到的列表"
+		} else {
+			resp["error"] = why + "，下面是内置表（没有倍率和优惠）"
+		}
 		return reply(200, resp)
+	}
+	if pick == nil {
+		why := "没有" + site.Name + "账号"
+		switch {
+		case mine > 0 && disabled == mine:
+			why = site.Name + "账号都已停用"
+		case keyOnly > 0:
+			why = site.Name + "账号只有 API Key，Key 读不到模型配置"
+		case mine > 0:
+			why = "没有可用的" + site.Name + "账号"
+		}
+		return fallback(why + "，读不到实时模型")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
@@ -732,19 +759,18 @@ func handleModels(d HostDoer, build, account string) (any, error) {
 		ch := channelFor(site)
 		fresh, err := wb.Fresh(ctx, HostDoer{}, site, a, func(n *wb.Account) { ch.Save(pick.ID, n) })
 		if err != nil {
-			resp["error"] = err.Error()
-			return reply(200, resp)
+			return fallback("读取实时模型失败：" + err.Error())
 		}
 		a = fresh
 	}
 	live, err := channelFor(site).Listed(ctx, HostDoer{}, a, true)
 	if err != nil {
-		resp["error"] = err.Error()
-		return reply(200, resp)
+		return fallback("读取实时模型失败：" + err.Error())
 	}
 	resp["live"] = live
 	resp["account"] = pick.ID
 	resp["account_name"] = viewOf(*pick).Name
+	saveModels(buildOf(site), live, viewOf(*pick).Name)
 	_ = d
 	return reply(200, resp)
 }

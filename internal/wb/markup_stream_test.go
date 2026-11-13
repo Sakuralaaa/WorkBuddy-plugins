@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestChatStreamRepairSplitMarkup(t *testing.T) {
@@ -40,5 +41,39 @@ func TestChatStreamRepairPlainUntouched(t *testing.T) {
 	_ = ChatStreamRepair(strings.NewReader(in), nil, NewMarkupRepair(nil, true), func(ev string) error { got = append(got, ev); return nil })
 	if len(got) != 2 || got[0] != `data: {"id":"c1","choices":[{"index":0,"delta":{"content":"hi"}}]}` {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestBadgesOf(t *testing.T) {
+	cfg := []byte(`{"agents":[{"name":"cli","models":["ds","hy3"]}],
+	"models":[{"id":"ds","name":"DS","credits":"x0.51","supportsToolCall":true,"supportsReasoning":true,"reasoning":{"supportedEfforts":["low","high"],"canDisableThinking":true}},
+	          {"id":"hy3","name":"Hy3","credits":"x0.2","supportsReasoning":true,"onlyReasoning":true,"reasoning":{"supportedEfforts":["low","high"],"canDisableThinking":false}}],
+	"modelPromotions":[
+	 {"kind":"discount","enabled":true,"priority":10,"modelIds":["ds"],"badge":{"label":"错峰使用"},"hover":{"textZh":"夜间五折"},"schedule":{"daily":[{"start":"23:00","end":"7:50"}]},"discount":{"factor":0.5}},
+	 {"kind":"discount","enabled":true,"priority":5,"modelIds":["hy3"],"badge":{"label":"限时免费"},"discount":{"discountedCredits":"0x"}}]}`)
+	var c Config
+	if err := json.Unmarshal(cfg, &c); err != nil {
+		t.Fatal(err)
+	}
+	noon := time.Date(2026, 11, 13, 12, 0, 0, 0, promoZone).UnixMilli()
+	list := ParseConfig(SiteCN(), &c, noon)
+	by := map[string]Model{}
+	for _, m := range list {
+		by[m.ID] = m
+	}
+	ds := by["ds"]
+	if !ds.Tools || ds.AlwaysThink || len(ds.Badges) != 1 || ds.Badges[0].Label != "错峰使用" || ds.Badges[0].Active || ds.Badges[0].Hours[0] != "23:00-07:50" {
+		t.Fatalf("ds %+v", ds)
+	}
+	if r := ds.Badges[0].Rate; r == nil || *r != 0.255 {
+		t.Fatalf("ds rate %v", r)
+	}
+	hy := by["hy3"]
+	if !hy.AlwaysThink || !hy.Free || len(hy.Badges) != 1 || !hy.Badges[0].Active || hy.RateWas != 0.2 {
+		t.Fatalf("hy3 %+v", hy)
+	}
+	night := time.Date(2026, 11, 13, 23, 30, 0, 0, promoZone).UnixMilli()
+	if b := BadgesOf(c.Models[0], c.ModelPromotions, night); len(b) != 1 || !b[0].Active {
+		t.Fatalf("night %+v", b)
 	}
 }

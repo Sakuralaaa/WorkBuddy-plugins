@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +25,22 @@ type Model struct {
 	Free    bool     `json:"free,omitempty"`
 	Rate    *float64 `json:"rate,omitempty"`
 	RateWas float64  `json:"rateWas,omitempty"`
+	// Tools: the config says the model takes tool calls. AlwaysThink: it
+	// reasons and thinking can't be turned off.
+	Tools       bool    `json:"tools,omitempty"`
+	AlwaysThink bool    `json:"alwaysThink,omitempty"`
+	Badges      []Badge `json:"badges,omitempty"`
+}
+
+// Badge is a promotion running for a model, as WorkBuddy's client labels it
+// ("限时免费", "错峰使用"). Active is false outside its daily hours.
+type Badge struct {
+	Label  string   `json:"label"`
+	Note   string   `json:"note,omitempty"`
+	Hours  []string `json:"hours,omitempty"` // "23:00-07:50", Asia/Shanghai
+	Until  int64    `json:"until,omitempty"` // unix ms
+	Active bool     `json:"active"`
+	Rate   *float64 `json:"rate,omitempty"` // the price while it is active
 }
 
 // ConfigModel is a model of /v3/config.
@@ -35,6 +52,7 @@ type ConfigModel struct {
 	MaxOutputTokens   int64           `json:"maxOutputTokens"`
 	SupportsImages    *bool           `json:"supportsImages"`
 	SupportsReasoning *bool           `json:"supportsReasoning"`
+	SupportsToolCall  *bool           `json:"supportsToolCall"`
 	OnlyReasoning     bool            `json:"onlyReasoning"`
 	Reasoning         *struct {
 		CanDisableThinking *bool    `json:"canDisableThinking"`
@@ -46,7 +64,14 @@ type ConfigModel struct {
 
 // Promotion is a config's modelPromotions entry.
 type Promotion struct {
-	Kind     string   `json:"kind"`
+	Kind     string `json:"kind"`
+	Priority int    `json:"priority"`
+	Badge    *struct {
+		Label string `json:"label"`
+	} `json:"badge"`
+	Hover *struct {
+		TextZh string `json:"textZh"`
+	} `json:"hover"`
 	ModelIDs []string `json:"modelIds"`
 	Enabled  *bool    `json:"enabled"`
 	Schedule *struct {
@@ -330,6 +355,8 @@ func ParseConfig(site *Site, cfg *Config, now int64) []Model {
 				m.Rate = &r
 			}
 			m.RateWas = p.RateWas
+			m.Tools = d.SupportsToolCall == nil || *d.SupportsToolCall
+			m.Badges = BadgesOf(*d, cfg.ModelPromotions, now)
 			if es := EffortsOf(*d, site, id); len(es) > 0 {
 				canOffSaid := d.Reasoning != nil && d.Reasoning.CanDisableThinking != nil
 				canOff := !canOffSaid || *d.Reasoning.CanDisableThinking
@@ -340,6 +367,7 @@ func ParseConfig(site *Site, cfg *Config, now int64) []Model {
 					m.Efforts = append([]string{}, es...)
 				}
 				m.Effort = DefaultEffortOf(*d, es)
+				m.AlwaysThink = !off
 			}
 		}
 		out = append(out, m)
@@ -423,8 +451,120 @@ func BuiltinList(site *Site) []Model {
 		m := Model{ID: b.ID, Name: b.Name, Context: b.Context, Output: b.Output, Images: !TextOnly(site, b.ID)}
 		if len(b.Efforts) > 0 {
 			m.Efforts = append([]string{}, b.Efforts...)
+			m.AlwaysThink = !containsStr(b.Efforts, "none")
 		}
+		m.Tools = true
 		out = append(out, m)
+	}
+	return out
+}
+
+var promoZone = time.FixedZone("CST", 8*3600)
+
+func clockOf(raw json.RawMessage) (start, end string, ok bool) {
+	var w struct {
+		Start string `json:"start"`
+		End   string `json:"end"`
+	}
+	if json.Unmarshal(raw, &w) != nil || w.Start == "" || w.End == "" {
+		return "", "", false
+	}
+	return w.Start, w.End, true
+}
+
+func minutesOf(hhmm string) (int, bool) {
+	var h, m int
+	if _, err := fmt.Sscanf(strings.TrimSpace(hhmm), "%d:%d", &h, &m); err != nil || h < 0 || h > 24 || m < 0 || m > 59 {
+		return 0, false
+	}
+	return h*60 + m, true
+}
+
+func pad(hhmm string) string {
+	if n, ok := minutesOf(hhmm); ok {
+		return fmt.Sprintf("%02d:%02d", n/60, n%60)
+	}
+	return hhmm
+}
+
+// BadgesOf are the promotions running for a model today, the one WorkBuddy
+// would show first leading: within its dates, and Active when now falls in
+// one of its daily windows (or it has none).
+func BadgesOf(d ConfigModel, promotions []Promotion, now int64) []Badge {
+	base, hasBase := CreditsOf(d.Credits)
+	cur := time.UnixMilli(now).In(promoZone)
+	curMin := cur.Hour()*60 + cur.Minute()
+	type item struct {
+		b    Badge
+		prio int
+	}
+	var list []item
+	seen := map[string]int{}
+	for _, p := range promotions {
+		if !containsStr(p.ModelIDs, d.ID) || !running(p, now) {
+			continue
+		}
+		b := Badge{Active: true}
+		if p.Badge != nil {
+			b.Label = strings.TrimSpace(p.Badge.Label)
+		}
+		if p.Hover != nil {
+			b.Note = strings.TrimSpace(p.Hover.TextZh)
+		}
+		if p.Schedule != nil {
+			if t, ok := jsDateParse(p.Schedule.ValidUntil); ok {
+				b.Until = t
+			}
+			if len(p.Schedule.Daily) > 0 {
+				b.Active = false
+				for _, raw := range p.Schedule.Daily {
+					st, ed, ok := clockOf(raw)
+					if !ok {
+						continue
+					}
+					b.Hours = append(b.Hours, pad(st)+"-"+pad(ed))
+					a, ok1 := minutesOf(st)
+					z, ok2 := minutesOf(ed)
+					if ok1 && ok2 && ((a <= z && curMin >= a && curMin < z) || (a > z && (curMin >= a || curMin < z))) {
+						b.Active = true
+					}
+				}
+			}
+		}
+		if r, ok := discountOf(p, base, hasBase); ok {
+			b.Rate = &r
+		}
+		if b.Label == "" {
+			switch {
+			case b.Rate != nil && *b.Rate == 0:
+				b.Label = "限时免费"
+			case len(b.Hours) > 0:
+				b.Label = "错峰使用"
+			case b.Rate != nil:
+				b.Label = "限时折扣"
+			default:
+				continue
+			}
+		}
+		key := b.Label + strings.Join(b.Hours, ",")
+		if i, dup := seen[key]; dup {
+			if p.Priority > list[i].prio {
+				list[i] = item{b, p.Priority}
+			}
+			continue
+		}
+		seen[key] = len(list)
+		list = append(list, item{b, p.Priority})
+	}
+	sort.SliceStable(list, func(i, j int) bool {
+		if list[i].b.Active != list[j].b.Active {
+			return list[i].b.Active
+		}
+		return list[i].prio > list[j].prio
+	})
+	out := make([]Badge, len(list))
+	for i := range list {
+		out[i] = list[i].b
 	}
 	return out
 }

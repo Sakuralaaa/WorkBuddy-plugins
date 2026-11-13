@@ -119,6 +119,15 @@ td .toggle{display:block}
 td input+span,td input+.small{margin-left:8px}
 div[style*="overflow:auto"]{border:1px solid var(--line);border-radius:var(--radius-sm)}
 .muted{color:var(--sub)}.small{font-size:12px}
+.caps{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.cap,.lv,.promo{display:inline-block;font-size:12px;line-height:1;padding:5px 9px;border-radius:999px;white-space:nowrap}
+.cap{background:var(--warn-soft);color:var(--warn)}
+.lvs{display:flex;gap:6px;flex-wrap:wrap}
+.lv{background:var(--soft);color:var(--sub);border:1px solid var(--line)}
+.lv.def{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.promo{background:var(--warn-soft);color:var(--warn);margin-left:4px;cursor:help}
+.promo.idle{background:var(--soft);color:var(--faint)}
+tr.off .cap,tr.off .promo,tr.off .lv{opacity:.55}
 .iconbtn{border:0;background:none;color:var(--faint);cursor:pointer;font-size:13px;padding:0 4px;border-radius:4px}.iconbtn:hover{color:var(--text);background:var(--hover)}
 .mono{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;font-size:12px}
 
@@ -367,7 +376,7 @@ td.src{max-width:260px;font-size:12px;color:var(--sub);overflow:hidden;text-over
         <div class="tabs2" id="modelBuild" style="margin:0"><button data-b="cn" class="on">国内版</button><button data-b="ai">国际版</button></div>
         <button class="btn" onclick="loadModels()">刷新</button></h2>
       <div id="modelNote"></div>
-      <div style="overflow:auto"><table><thead><tr><th style="width:64px">启用</th><th>模型</th><th>名称</th><th>上下文</th><th>价格</th><th>思考档位</th><th>图片</th></tr></thead><tbody id="modelRows"></tbody></table></div>
+      <div style="overflow:auto"><table><thead><tr><th style="width:64px">启用</th><th>模型</th><th>倍率</th><th>默认档位</th><th>思考档位</th><th class="num">上下文</th><th class="num">最大输出</th></tr></thead><tbody id="modelRows"></tbody></table></div>
     </div>
     <div class="card">
       <h2>模型与请求设置</h2>
@@ -952,6 +961,11 @@ async function loadRequests(){
 
 // ---- models ----
 document.querySelectorAll('#modelBuild button').forEach(b=>b.onclick=()=>{S.modelBuild=b.dataset.b;document.querySelectorAll('#modelBuild button').forEach(x=>x.classList.toggle('on',x===b));loadModels()});
+function fmtRate(r){return String(+(+r).toFixed(3))}
+function kfmtT(n){return Math.round(n/1000)+'K'}
+// a badge with daily hours is live only inside them (Beijing time)
+function badgeOn(b){if(!(b.hours||[]).length)return b.active!==false;const d=new Date(Date.now()+8*3600e3),cur=d.getUTCHours()*60+d.getUTCMinutes();
+  return b.hours.some(h=>{const [a,z]=h.split('-').map(x=>{const [hh,mm]=x.split(':');return +hh*60+(+mm)});return a<=z?cur>=a&&cur<z:cur>=a||cur<z})}
 async function loadModels(){
   const rows=document.getElementById('modelRows');rows.innerHTML='<tr><td colspan="7" class="empty"><span class="spin"></span></td></tr>';
   try{
@@ -960,9 +974,18 @@ async function loadModels(){
     const live=r.live||r.builtin||[];
     document.getElementById('modelNote').innerHTML=(r.error?`<div class="note warn">${esc(r.error)}</div>`:`<div class="note">实时列表来自账号「${esc(r.account_name||'')}」的 /v3/config · 当前「只用免费模型」：<b>${r.free_only?'开':'关'}</b> · 请求声明版本 App ${esc(r.versions.app)} / CLI ${esc(r.versions.cli)} · SDK ${esc(r.sdk_os)}/${esc(r.sdk_arch)}</div>`);
     const off=new Set((st.config&&st.config['disabled_models_'+S.modelBuild])||[]);S.modelOff=off;
-    rows.innerHTML=live.map(m=>`<tr class="${off.has(m.id)?'off':''}"><td><label class="toggle" title="${off.has(m.id)?'已禁用':'已启用'}"><input type="checkbox" class="mtoggle" data-id="${esc(m.id)}" ${off.has(m.id)?'':'checked'}><span></span></label></td><td class="mono">${esc(m.id)}</td><td>${esc(m.name||'')}</td><td>${m.context?fmtNum(m.context):'—'}</td>
-      <td>${m.free?'<span class="badge ok">免费</span>':(m.rate!=null?'×'+esc(m.rate)+' 积分':'—')}${m.rateWas?' <span class="muted small">原 ×'+esc(m.rateWas)+'</span>':''}</td>
-      <td class="small">${(m.efforts||[]).map(esc).join(' / ')||'—'}${m.effort?' <span class="muted">默认 '+esc(m.effort)+'</span>':''}</td><td>${m.images?'✓':''}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">没有模型</td></tr>';
+    rows.innerHTML=live.map(m=>{const isOff=off.has(m.id);
+      const caps=[m.tools?'<span class="cap">工具</span>':'',m.images?'<span class="cap">视觉</span>':'',m.alwaysThink?'<span class="cap">思考常开</span>':''].join('');
+      const bs=(m.badges||[]).map(b=>{const on=badgeOn(b);const tip=[b.note,(b.hours||[]).length?'时段 '+b.hours.join('、')+'（北京时间）':'',b.until?'截止 '+fmtTime(b.until):'',b.rate!=null?'优惠价 x'+fmtRate(b.rate):''].filter(Boolean).join('\n');
+        return `<span class="promo${on?'':' idle'}" title="${esc(tip)}">${esc(b.label)}${(b.hours||[]).length?' '+esc(b.hours[0]):''}</span>`}).join('');
+      const rate=m.free?'0x':(m.rate!=null?'x'+fmtRate(m.rate):'—');
+      const effs=(m.efforts||[]).map(e=>`<span class="lv">${e==='none'?'off（可关）':esc(e)}</span>`).join('')||'<span class="muted">—</span>';
+      return `<tr class="${isOff?'off':''}"><td><label class="toggle" title="${isOff?'已禁用':'已启用'}"><input type="checkbox" class="mtoggle" data-id="${esc(m.id)}" ${isOff?'':'checked'}><span></span></label></td>
+      <td><div class="mono" style="font-weight:600;color:var(--text)">${esc(m.id)}</div><div class="small muted mono">${esc(m.name||'')}</div>${caps?`<div class="caps">${caps}</div>`:''}</td>
+      <td><span class="mono">${rate}</span> ${bs}${m.rateWas?` <s class="muted mono small">x${fmtRate(m.rateWas)}</s>`:''}</td>
+      <td>${m.effort?`<span class="lv def">${esc(m.effort)}</span>`:'<span class="muted">—</span>'}</td>
+      <td><div class="lvs">${effs}</div></td>
+      <td class="num mono">${m.context?kfmtT(m.context):'—'}</td><td class="num mono">${m.output?kfmtT(m.output):'—'}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">没有模型</td></tr>';
     rows.querySelectorAll('.mtoggle').forEach(i=>i.onchange=()=>toggleModel(i));
     const tm=document.getElementById('testModel');tm.innerHTML=live.filter(m=>!off.has(m.id)).map(m=>`<option value="${esc(m.id)}">${esc(m.id)}${m.free?'（免费）':''}</option>`).join('');
     loadApiKeys();
