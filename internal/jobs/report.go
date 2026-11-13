@@ -139,6 +139,7 @@ func (c *Client) mpReportHeaders() http.Header {
 	h.Set("X-Client-Platform", "mp-weixin")
 	h.Set("X-Platform", "wechatmp")
 	h.Set("X-User-Id", c.A.UID)
+	wb.InjectDeviceToken(h, c.A.DeviceToken, c.DeviceToken, "")
 	return h
 }
 

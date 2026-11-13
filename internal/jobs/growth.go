@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/Sakuralaaa/WorkBuddy-plugins/internal/wb"
 )
 
 // Task is one growth-centre task as the task list shows it
@@ -207,8 +209,60 @@ func (c *Client) waitTask(ctx context.Context, code string, tries int, gap float
 }
 
 // Accept accepts tasks; it reports the codes the server took and those it
-// did not, with why.
+// did not, with why. For mini-program tasks it verifies the accept by
+// re-reading accept_status afterwards (panel's acceptWithVerifyMP): the
+// upstream has a "200 OK but not actually registered" form, where every
+// event sent for the task afterwards goes uncounted. A code still
+// not_accepted after the re-read is accepted once more, and only counted
+// as accepted when the re-read confirms it.
 func (c *Client) Accept(ctx context.Context, codes []string, mp bool) (accepted, failed []string, why string) {
+	accepted, failed, why = c.acceptOnce(ctx, codes, mp)
+	if !mp || len(accepted) == 0 {
+		return accepted, failed, why
+	}
+	verified, unverified := c.verifyAccepted(ctx, accepted)
+	if len(unverified) == 0 {
+		return verified, failed, why
+	}
+	acc2, fail2, why2 := c.acceptOnce(ctx, unverified, mp)
+	verified2, still := c.verifyAccepted(ctx, acc2)
+	accepted = append(verified, verified2...)
+	failed = append(failed, fail2...)
+	failed = append(failed, still...)
+	if len(still) > 0 {
+		why = "接取后回读仍为未接取（上游未登记）: " + joinCodes(still)
+	} else if why2 != "" {
+		why = why2
+	}
+	return accepted, failed, why
+}
+
+func joinCodes(codes []string) string {
+	out := ""
+	for i, c := range codes {
+		if i > 0 {
+			out += ", "
+		}
+		out += c
+	}
+	return out
+}
+
+// verifyAccepted re-reads each accepted code and splits them into the ones
+// the server actually registered and the ones still not_accepted.
+func (c *Client) verifyAccepted(ctx context.Context, codes []string) (verified, unverified []string) {
+	for _, code := range codes {
+		t, err := c.TaskByCode(ctx, code)
+		if err == nil && t != nil && t.AcceptStatus != "not_accepted" {
+			verified = append(verified, code)
+		} else {
+			unverified = append(unverified, code)
+		}
+	}
+	return verified, unverified
+}
+
+func (c *Client) acceptOnce(ctx context.Context, codes []string, mp bool) (accepted, failed []string, why string) {
 	for i := 0; i < len(codes); i += 20 {
 		end := i + 20
 		if end > len(codes) {
@@ -310,6 +364,7 @@ func (c *Client) webHeaders() http.Header {
 	h.Set("Origin", c.webBase())
 	h.Set("User-Agent", webUA)
 	h.Set("X-User-Id", c.A.UID)
+	wb.InjectDeviceToken(h, c.A.DeviceToken, c.DeviceToken, "")
 	if c.A.EnterpriseID != "" {
 		h.Set("X-Enterprise-Id", c.A.EnterpriseID)
 		h.Set("X-Tenant-Id", c.A.EnterpriseID)

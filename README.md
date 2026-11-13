@@ -86,10 +86,24 @@ CGO_ENABLED=1 go build -buildmode=c-shared -o workbuddy-magpie.so ./cmd/plugin
 | 小程序任务链（`tasks.miniprogram`） | 国内版 | `Sequential_Tasks_1~7`、`school_season`；小程序对话事件按约 45 秒的真人节奏上报（连发会被判无效回滚），较慢 |
 | 夜猫子（`tasks.night`） | 国内版 | 23:00–08:00 内 glm-5.2 真实对话一次并上报，每晚计 1 次，累计 3 晚领奖 |
 | 国际版每日活跃（`tasks.intl_daily`，`tasks.intl_daily_web`） | 国际版 | 桌面通道一次短对话；开启 `intl_daily_web` 后再建一条网页云端会话并通过 ACP 跑完（计入每日活跃积分的那一条），结束后停止会话释放名额 |
+| 补领清扫（`tasks.sweep`） | 国内版个人 | 每 `schedule.sweep_minutes`（默认 15 分钟）接取并领取所有已达标的任务：只做接取 + 领奖，不跑行为链、不看任务白名单。补上成长任务错过的部分——在官方客户端手动做完的、在成长任务时段之后达标的、新下发的任务 |
+| 一键完成任务 | 国内版个人 | 不是配置开关，是管理页 `POST workbuddy-magpie/run` 传 `{"job": "tasks"}`：一次跑完补领清扫 → 成长任务 → 小程序任务链 → 运营活动 |
 
 `tasks.claim`（默认 `true`）关掉后，任务只推进进度、不领奖（礼包、补偿、档位兑换、抽奖、旅行领奖也一并不做）。
 
-部分任务需要少量真实对话（glm-5.2 / fast-model，各几条短消息），走插件自己的请求路径（同样的签名和 CPA 的代理）；开了「只用免费模型」时，非免费模型的对话会被拒绝，相应任务会报失败而不是伪造。所有上游请求都经 CPA 的 `host.http.*` 发出，使用 CPA 的代理设置。同一账号的任务串行执行，上游写操作之间至少间隔 1 秒。
+部分任务需要少量真实对话（glm-5.2 / fast-model，各几条短消息），走插件自己的请求路径（同样的签名和 CPA 的代理）；开了「只用免费模型」时，非免费模型的对话会被拒绝，相应任务会报失败而不是伪造。所有上游请求都经 CPA 的 `host.http.*` 发出，使用 CPA 的代理设置。同一账号的任务串行执行，上游写操作之间至少间隔 1 秒；不同账号并行跑（`tasks_concurrency`，默认 2，最多 4）。
+
+## 指纹与粘性会话
+
+请求指纹按桌面客户端的完整头族发出：`User-Agent: WorkBuddy/<版本> WorkBuddy/<版本> CLI/<版本>`、`X-IDE-Name/Version/Type`、`X-Agent-Intent/Purpose/Type/Runtime`、`X-Stainless-*`，对话另带 `X-Conversation-ID / X-Conversation-Request-ID / X-Root-Request-ID / X-Conversation-Message-ID`（同一会话同一轮次用同一组 id，换账号时按新账号重算，提示缓存不跨账号共享）以及 `prompt_cache_key`。`X-Device-Token` 三个来源按优先级取用：账号凭据里的 `device_token` → 配置 `device_token` → 配置 `device_token_file` 指定的文件（桌面端生成的 token，5 分钟缓存，超过 1KB 忽略）；三个都没有就不发这个头。
+
+粘性会话：会话 id 从请求头/元数据里取，取不到时再从请求体 `conversation_id` 或 `metadata.session_id` 里取。会话与首次服务的账号绑定记录在状态文件里（只存会话 id 的哈希，不存原文），24 小时滚动过期。注意：**选哪个账号是 CPA 路由决定的，插件改不了**——会话换账号时插件只记录一次跳号（状态页 `status` 的 `sticky` 字段可见）、记一条警告日志，然后继续用新账号的 id 发请求。想让一个会话真正钉在一个账号上，要在 CPA 侧用单账号的路由组/渠道。
+
+签到失败会按 15 分钟、30 分钟、1 小时、2 小时、4 小时（封顶）翻倍退避重试，直到当天落定（已领/已签/无资格/活动未开都算落定，当天不再跑）；以前失败一次就把时段标记为已执行，整天不再重试。
+
+补偿状态：`GET workbuddy-magpie/compensation`（可带 `?account=`）列出各账号的补偿包、截止时间，48 小时内到期的标 `urgent`；查询失败单独成行报错，不会跟“没有补偿”混在一起。
+
+免费额度窗口：`deepseek-v4.1-flash` 有自己独立的 token 额度（国内版约 2 亿、国际版 1 亿），跟积分是两本账，积分一分没动也可能被它拒掉。插件每次经 CPA 转发这个模型时记一行（时间、账号、token 数、429 的报错原文），按 magpie 的链式算法算当前窗口：窗口从上一个窗口结束后第一个被接纳的请求开始，24 小时；429 里厂商给的重置时间是窗口的硬边，正在生效的拒单直接按满额显示、标“已触发限流”。结果出现在积分页的额度卡片里（标“估算”）和 CPA 的额度视图里。行存在凭据目录下的 `.workbuddy-magpie-freewin`，只记数字和拒单原文，不记提示词和回答，30 天以上的行自动丢弃。注意两点：这个数是估算——账号在别处（官方客户端、别的网关）用的量插件看不见，真实值只看厂商的 429；任务里自己的短对话（`chatFor`）量极小，没记进来。
 
 ## 配置
 
@@ -104,6 +118,9 @@ plugins:
       hide_dsh: true
       # cn_app_version / cn_cli_version / ai_app_version / ai_cli_version
       # sdk_os / sdk_arch
+      # device_token: ""        # 全局 X-Device-Token；账号凭据里的 device_token 优先
+      # device_token_file: ""   # 桌面端 token 文件路径（兜底来源）
+      # tasks_concurrency: 2    # 调度器并行跑几个账号（1–4）
       scheduler: true           # false 关闭后台调度（手动运行仍可用）
       checkin: false
       tasks:
@@ -116,6 +133,7 @@ plugins:
         night: false
         intl_daily: false
         intl_daily_web: false
+        sweep: false
         claim: true
       schedule:                 # 北京时间
         checkin_at: "09:00"     # 空 = 0 点后第一次检查
@@ -124,6 +142,7 @@ plugins:
         travel_hours: [9, 21]
         growth_hours: [10]      # 成长任务、运营活动、小程序任务共用
         night_hours: [1]
+        sweep_minutes: 15       # 补领清扫间隔（分钟）；0 = 只手动跑
         intl_daily_times: ["10:30", "20:30"]
 ```
 

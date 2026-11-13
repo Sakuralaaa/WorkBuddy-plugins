@@ -125,6 +125,10 @@ type Window struct {
 	RunsOutAt string   `json:"runsOutAt,omitempty"`
 	RunsOut   float64  `json:"runsOut,omitempty"`
 	Aside     bool     `json:"aside,omitempty"`
+	// Refused is set when a refusal still in force names the window's
+	// end: the vendor's answer, exact, where the ledger's sum is only an
+	// estimate (freewindow.go).
+	Refused   bool     `json:"refused,omitempty"`
 	NotModels []string `json:"notModels,omitempty"`
 	Models    []string `json:"models,omitempty"`
 }
@@ -714,9 +718,43 @@ func (c *Channel) Credits(ctx context.Context, d Doer, authID string, a *Account
 		}
 	}
 	out.Windows = c.spareFree(ctx, d, a, out.Windows)
-	out.Windows = append(out.Windows, c.refusalWindows(authID)...)
+	free := c.freeWindow(authID)
+	out.Windows = append(out.Windows, free...)
+	// A live refusal is already the free window's own card (Used 100,
+	// refused until the vendor's reset); the in-memory refusal window
+	// for the same model would only duplicate it.
+	for _, w := range c.refusalWindows(authID) {
+		covered := false
+		for _, f := range free {
+			for _, m := range f.Models {
+				for _, n := range w.Models {
+					if m == n {
+						covered = true
+					}
+				}
+			}
+		}
+		if !covered {
+			out.Windows = append(out.Windows, w)
+		}
+	}
 	out.SignIn = said
 	return out
+}
+
+// freeWindow is the account's free-token window from the rows the host
+// recorded for the window's model (nil when the host keeps none, or no
+// row of this account's is in a live window).
+func (c *Channel) freeWindow(authID string) []*Window {
+	if c.FreeRows == nil {
+		return nil
+	}
+	site := c.Site()
+	win := FreeWindowOf(c.FreeRows(authID, site.AI), authID, time.Now(), FreeWindowSpecFor(site.AI))
+	if win == nil {
+		return nil
+	}
+	return []*Window{win}
 }
 
 // spareFree has the credits windows not count the models that cost none.

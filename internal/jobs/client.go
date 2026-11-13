@@ -78,6 +78,10 @@ type Client struct {
 	D    wb.Doer
 	Site *wb.Site
 	A    *wb.Account
+	// DeviceToken is the resolved global/file device token for this
+	// account (the account's own token, when it has one, is set by
+	// wb.Sign and wins); empty means no token is sent.
+	DeviceToken string
 	// Nick is the account's display name, for the event envelopes.
 	Nick string
 	// Chat sends a real chat for the account (tasks that need one).
@@ -103,6 +107,7 @@ func (c *Client) chatBase() string {
 func (c *Client) chatHeaders() http.Header {
 	h := http.Header{}
 	wb.Sign(c.Site, c.A, h)
+	wb.InjectDeviceToken(h, c.A.DeviceToken, c.DeviceToken, "")
 	h.Set("Content-Type", "application/json")
 	h.Set("Accept", "application/json, text/plain, */*")
 	return h
@@ -127,6 +132,7 @@ func (c *Client) billingHeaders() http.Header {
 	h.Set("X-Domain", wb.DomainOf(c.Site, c.A))
 	h.Set("X-CodeBuddy-Request", "1")
 	h.Set("Accept-Language", lang)
+	wb.InjectDeviceToken(h, c.A.DeviceToken, c.DeviceToken, "")
 	h.Set("X-Request-ID", RequestID())
 	h.Set("X-Machine-ID", DeriveID(c.A.UID, "machine"))
 	h.Set("X-Session-ID", DeriveID(c.A.UID, "session"))

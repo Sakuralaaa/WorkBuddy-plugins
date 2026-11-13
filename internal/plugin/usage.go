@@ -154,6 +154,9 @@ func startUsageSaver() {
 				usage.Lock()
 				saveUsageLocked()
 				usage.Unlock()
+				freewin.Lock()
+				saveFreewinLocked()
+				freewin.Unlock()
 				saveCreditStore()
 			}
 		}()
@@ -267,6 +270,7 @@ func noteUsage(c *call, m *usageMeter, err error) {
 	ok := err == nil
 	now := time.Now()
 	noteRequest(c, m, err, now)
+	noteFreeRow(c, m, err, now)
 	k := usageKey{T: now.Truncate(time.Hour).Unix(), Acct: c.req.AuthID, Build: buildOf(c.site), Model: c.model}
 	b := usageBucket{N: 1, LastAt: now.UnixMilli()}
 	if !ok {

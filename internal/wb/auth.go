@@ -30,6 +30,10 @@ type Account struct {
 	AccountID        string `json:"accountId,omitempty"` // the name magpie lists it as
 	Key              string `json:"key,omitempty"`
 	Plan             string `json:"plan,omitempty"`
+	// DeviceToken is the account's own device token (device_token key in
+	// its auth file): the first source of X-Device-Token, ahead of the
+	// configured global token and the token file (see fingerprint.go).
+	DeviceToken string `json:"device_token,omitempty"`
 	// Pending is set on a sign-in a file brought in that CPA parsed before
 	// it could be renewed (auth.parse has no network): it is renewed and
 	// looked up on its first use, as magpie's import does up front.
@@ -486,6 +490,9 @@ func Sign(site *Site, a *Account, h http.Header) {
 	h.Set("X-Agent-Purpose", "conversation")
 	h.Set("X-IDE-Name", "WorkBuddy")
 	h.Set("X-IDE-Version", site.App)
+	if tok := strings.TrimSpace(a.DeviceToken); tok != "" {
+		h.Set(deviceTokenHeader, tok)
+	}
 	for k, v := range EnterpriseHeaders(a) {
 		h.Set(k, v)
 	}

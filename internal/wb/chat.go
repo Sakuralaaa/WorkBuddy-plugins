@@ -27,6 +27,11 @@ const EdgeReads = 2 * 1024 * 1024
 type Options struct {
 	FreeOnly bool
 	HideDsh  bool
+	// DeviceToken / DeviceTokenFile are the global and file sources of
+	// X-Device-Token (fingerprint.go); the account's own token, when it
+	// has one, wins over both.
+	DeviceToken     string
+	DeviceTokenFile string
 	// Disabled model ids are refused before anything is sent.
 	Disabled map[string]bool
 	// CacheKey gives each completion a prompt_cache_key of its own account
@@ -43,6 +48,10 @@ type Channel struct {
 	Stored func(authID string) *Account
 	// Save keeps a sign-in renewed here for an auth.
 	Save func(authID string, a *Account)
+	// FreeRows are an auth's recorded requests of the free window's model
+	// (plugin/freewin.go); nil when the host keeps none, and the window
+	// is then left unknown rather than guessed.
+	FreeRows func(authID string, ai bool) []FreeRow
 
 	mu             sync.Mutex
 	endsAfterTools map[string]bool
@@ -361,6 +370,9 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 	headers.Del("X-Api-Key")
 	headers.Del("Content-Length")
 	Sign(site, a, headers)
+	// The account's own token is set by Sign when it has one; the global
+	// and file sources fill the header in when it has none.
+	InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
 
 	native := req.Native
 	p := Prepare(req.Body, native)
@@ -488,7 +500,11 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 		}
 		renewed = true
 		a = ri.a
+		// The renewed account's own token replaces the old one's; without
+		// one the global/file sources fill in again.
+		headers.Del(deviceTokenHeader)
 		Sign(site, a, headers)
+		InjectDeviceToken(headers, "", opts.DeviceToken, opts.DeviceTokenFile)
 		now := ScopeOf(a)
 		ids = Reattend(headers, ids, who, now)
 		who = now

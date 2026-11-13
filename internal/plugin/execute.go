@@ -125,7 +125,12 @@ func withModel(body []byte, model string) []byte {
 
 // sessionOf is the session a client names, which magpie keys a
 // conversation's id by when it has one (else the first user message).
-func sessionOf(h http.Header, meta map[string]any) string {
+// Headers and metadata come first; many OpenAI clients put the session in
+// the body instead (conversation_id, or metadata.session_id), so the body
+// is the fallback — without it those clients' turns were keyed only by
+// their first user message, and a conversation that restarts with the
+// same first message collided with the old one.
+func sessionOf(h http.Header, meta map[string]any, body []byte) string {
 	for _, k := range []string{"X-Session-Id", "Session_id", "Session-Id", "X-Claude-Code-Session-Id", "X-Codex-Session-Id"} {
 		if v := strings.TrimSpace(h.Get(k)); v != "" {
 			return v
@@ -134,6 +139,22 @@ func sessionOf(h http.Header, meta map[string]any) string {
 	for _, k := range []string{"session_id", "sessionId"} {
 		if v, ok := meta[k].(string); ok && strings.TrimSpace(v) != "" {
 			return strings.TrimSpace(v)
+		}
+	}
+	if len(body) > 0 {
+		var b struct {
+			ConversationID string `json:"conversation_id"`
+			Metadata       struct {
+				SessionID string `json:"session_id"`
+			} `json:"metadata"`
+		}
+		if json.Unmarshal(body, &b) == nil {
+			if v := strings.TrimSpace(b.ConversationID); v != "" {
+				return v
+			}
+			if v := strings.TrimSpace(b.Metadata.SessionID); v != "" {
+				return v
+			}
 		}
 	}
 	return ""
@@ -154,9 +175,18 @@ func (c *call) fetch(ctx context.Context) (*wb.ChatResult, error) {
 			h.Set("Anthropic-Beta", b)
 		}
 	}
+	session := sessionOf(c.req.Headers, c.req.Metadata, c.body)
+	// Sticky session: a session is bound to the account that first served
+	// it. CPA picks the credential for a request and the plugin cannot
+	// override that pick, so a hop is recorded and logged rather than
+	// blocked — the request still goes out, with its conversation ids
+	// re-derived for the account it actually runs as (wb.Reattend).
+	if hopped, hops := stickyBind(session, c.req.AuthID); hopped {
+		hostLog("warn", fmt.Sprintf("session changed account (hop %d); conversation ids re-derived for the new account, prompt cache is not shared", hops), map[string]any{"auth": c.req.AuthID})
+	}
 	res, err := ch.Fetch(ctx, c.doer, &wb.ChatRequest{
 		AuthID: c.req.AuthID, Account: c.account, URL: url, Body: c.body,
-		Native: c.upstream == fmtClaude, Session: sessionOf(c.req.Headers, c.req.Metadata), Header: h,
+		Native: c.upstream == fmtClaude, Session: session, Header: h,
 	})
 	if err != nil {
 		return nil, transportFailure(c.site, err)

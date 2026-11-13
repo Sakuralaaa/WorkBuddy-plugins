@@ -52,6 +52,24 @@ func quotaFetch(req []byte) (any, error) {
 		}
 	}
 	out.Groups = append(out.Groups, g)
+	// The free-token window is counted apart from credits, so it is its
+	// own group (magpie's usage card shows it beside the credits).
+	if w := freeWindowFor(r.AuthID, site); w != nil {
+		left := 1 - w.Used/100
+		if left < 0 {
+			left = 0
+		}
+		desc := w.Display
+		if w.Refused {
+			desc += " — refused until reset"
+		} else if w.Aside {
+			desc += " (estimated)"
+		}
+		out.Groups = append(out.Groups, pluginapi.QuotaGroup{DisplayName: w.Name, Buckets: []pluginapi.QuotaBucket{{Window: w.Name, RemainingFraction: left, ResetTime: w.ResetsAt, Description: desc}}})
+		if w.Limit > 0 {
+			out.Summary = append(out.Summary, pluginapi.QuotaMetric{Key: w.Name, Label: w.Name, Value: w.Limit - w.Amount, Unit: w.Unit})
+		}
+	}
 	if runs := lastRuns(r.AuthID); len(runs) > 0 {
 		jg := pluginapi.QuotaGroup{DisplayName: "Jobs"}
 		for _, j := range runs {

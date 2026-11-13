@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -41,11 +43,35 @@ func (r *Ring) Newest(n int, account string) []Run {
 	return out
 }
 
+// StickyBinding is a client session bound to the account that first served
+// it. CPA picks the credential for a request; the plugin cannot override
+// that choice, so a binding is a record, not a route: when a session comes
+// back on another account the hop is counted and logged, and the request
+// keeps going (its conversation ids are re-derived for the new account, so
+// the prompt cache is never shared across accounts). A binding expires
+// after a day without being seen, after which the next account binds it.
+type StickyBinding struct {
+	Session string `json:"session"` // sha256 of the session id, first 16 hex digits
+	AuthID  string `json:"auth"`
+	First   int64  `json:"first_unix"`
+	Last    int64  `json:"last_unix"`
+	Hops    int    `json:"hops"`
+}
+
+// CheckinRetry is a failed check-in's retry state for one Beijing day.
+type CheckinRetry struct {
+	Day   string `json:"day"`
+	Tries int    `json:"tries"`
+	Next  int64  `json:"next_unix"`
+}
+
 type persisted struct {
-	Slots   map[string]map[string]string `json:"slots"`   // account → job → slot
-	OKDay   map[string]map[string]string `json:"ok_day"`  // account → job → Beijing day
-	Last    map[string]map[string]Run    `json:"last"`    // account → job[:task] → run
-	History []Run                        `json:"history"` // newest last, bounded
+	Slots   map[string]map[string]string `json:"slots"`                   // account → job → slot
+	OKDay   map[string]map[string]string `json:"ok_day"`                  // account → job → Beijing day
+	Last    map[string]map[string]Run    `json:"last"`                    // account → job[:task] → run
+	History []Run                        `json:"history"`                 // newest last, bounded
+	Sticky  map[string]StickyBinding     `json:"sticky,omitempty"`        // session hash → binding
+	Retry   map[string]CheckinRetry      `json:"checkin_retry,omitempty"` // account → retry state
 }
 
 var state = struct {
@@ -67,6 +93,100 @@ func (p *persisted) init() {
 	}
 	if p.Last == nil {
 		p.Last = map[string]map[string]Run{}
+	}
+	if p.Sticky == nil {
+		p.Sticky = map[string]StickyBinding{}
+	}
+	if p.Retry == nil {
+		p.Retry = map[string]CheckinRetry{}
+	}
+}
+
+const stickyTTL = 24 * time.Hour
+
+func stickyKey(session string) string {
+	sum := sha256.Sum256([]byte(session))
+	return hex.EncodeToString(sum[:])[:16]
+}
+
+// stickyBind records that session was served by authID. It reports whether
+// the session hopped accounts (it was bound to another auth and the binding
+// has not expired) and how many hops it has made in total.
+func stickyBind(session, authID string) (hopped bool, hops int) {
+	if session == "" || authID == "" {
+		return false, 0
+	}
+	key := stickyKey(session)
+	now := time.Now().Unix()
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	b, ok := state.p.Sticky[key]
+	if !ok || time.Unix(b.Last, 0).Add(stickyTTL).Before(time.Now()) {
+		state.p.Sticky[key] = StickyBinding{Session: key, AuthID: authID, First: now, Last: now}
+		saveStateLocked()
+		return false, 0
+	}
+	if b.AuthID == authID {
+		b.Last = now
+		state.p.Sticky[key] = b
+		saveStateLocked()
+		return false, b.Hops
+	}
+	b.Hops++
+	b.Last = now
+	state.p.Sticky[key] = b
+	saveStateLocked()
+	return true, b.Hops
+}
+
+// stickyBindings are the live session→account bindings, newest first.
+func stickyBindings() []StickyBinding {
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	out := make([]StickyBinding, 0, len(state.p.Sticky))
+	now := time.Now()
+	for _, b := range state.p.Sticky {
+		if time.Unix(b.Last, 0).Add(stickyTTL).Before(now) {
+			continue
+		}
+		out = append(out, b)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Last > out[j].Last })
+	return out
+}
+
+// checkinRetryOf is a failed check-in's retry state for account and day.
+func checkinRetryOf(account, day string) (tries int, next time.Time, ok bool) {
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	r, ok := state.p.Retry[account]
+	if !ok || r.Day != day {
+		return 0, time.Time{}, false
+	}
+	return r.Tries, time.Unix(r.Next, 0), true
+}
+
+// noteCheckinRetry records a failed check-in: tries so far and when the
+// next attempt may run (the caller picks the backoff).
+func noteCheckinRetry(account, day string, tries int, next time.Time) {
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	state.p.Retry[account] = CheckinRetry{Day: day, Tries: tries, Next: next.Unix()}
+	saveStateLocked()
+}
+
+// clearCheckinRetry drops a day's retry state (the check-in settled).
+func clearCheckinRetry(account, day string) {
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	if r, ok := state.p.Retry[account]; ok && r.Day == day {
+		delete(state.p.Retry, account)
+		saveStateLocked()
 	}
 }
 
@@ -178,6 +298,17 @@ func markOK(account, job, day string) {
 	}
 	state.p.OKDay[account][job] = day
 	saveStateLocked()
+}
+
+// lastRunAt is when an account last ran a job (zero when never).
+func lastRunAt(account, job string) time.Time {
+	state.Lock()
+	defer state.Unlock()
+	loadStateLocked()
+	if r, ok := state.p.Last[account][job]; ok {
+		return r.At
+	}
+	return time.Time{}
 }
 
 // lastRuns are an account's last run of each job.

@@ -69,13 +69,14 @@ func channelFor(site *wb.Site) *wb.Channel {
 		mk := func(get func() *wb.Site) *wb.Channel {
 			ch := wb.NewChannel(get, func() wb.Options {
 				c := cfg()
-				return wb.Options{FreeOnly: c.freeOnly(get()), HideDsh: c.hideDsh(), Disabled: c.disabled(get()), CacheKey: c.cacheKey()}
+				return wb.Options{FreeOnly: c.freeOnly(get()), HideDsh: c.hideDsh(), Disabled: c.disabled(get()), CacheKey: c.cacheKey(), DeviceToken: c.DeviceToken, DeviceTokenFile: c.DeviceTokenFile}
 			})
 			ch.Stored = heldAccount
 			ch.Save = func(authID string, a *wb.Account) {
 				holdAccount(authID, a)
 				persist(authID, a)
 			}
+			ch.FreeRows = freeRows
 			return ch
 		}
 		channels.cn = mk(wb.SiteCN)

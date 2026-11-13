@@ -40,6 +40,7 @@ var routes = []route{
 	{"GET", base + "credits/packages", "WorkBuddy: an account's credit packages (?account=&refresh=1)"},
 	{"GET", base + "models", "WorkBuddy: live model list of a build (?build=cn|ai&account=)"},
 	{"GET", base + "tasks", "WorkBuddy: an account's task center (?account=)"},
+	{"GET", base + "compensation", "WorkBuddy: every account's compensation status and deadline (?account=)"},
 	{"POST", base + "keys/check", "WorkBuddy: check an API key with WorkBuddy before it is saved"},
 	{"POST", base + "accounts/note", "WorkBuddy: set or clear an account's note ({account, note})"},
 	{"GET", base + "credits/history", "WorkBuddy: credits left over time (?hours=&account=)"},
@@ -131,6 +132,8 @@ func managementHandle(raw []byte) (any, error) {
 		return handleModels(d, q.Get("build"), q.Get("account"))
 	case method == "GET" && path == base+"tasks":
 		return handleTasks(q.Get("account"))
+	case method == "GET" && path == base+"compensation":
+		return handleCompensation(q.Get("account"))
 	case method == "POST" && path == base+"keys/check":
 		return handleKeyCheck(d, r.Body)
 	case method == "POST" && path == base+"history/clear":
@@ -173,6 +176,7 @@ func statusBody(q url.Values) map[string]any {
 		"config":    c,
 		"running":   runningRuns(),
 		"last":      lastRunsAll(),
+		"sticky":    stickyBindings(),
 		"history":   history(n, q.Get("account")),
 		"state":     statePath(),
 		"actions":   jobs.Actions,
@@ -188,7 +192,7 @@ func handleRun(body []byte) (any, error) {
 		Task    string `json:"task"`
 	}
 	_ = json.Unmarshal(body, &req)
-	if req.Job != "" && jobInfo(req.Job) == nil {
+	if req.Job != "" && req.Job != "all" && req.Job != "tasks" && jobInfo(req.Job) == nil {
 		return replyErr(400, "未知任务 "+req.Job)
 	}
 	if req.Account == "" && req.Job == "" {
@@ -209,6 +213,10 @@ func handleRun(body []byte) (any, error) {
 		return replyErr(404, "没有匹配的账号")
 	}
 	keys := []string{req.Job}
+	if req.Job == "tasks" {
+		// 一键完成任务:先补领已达标的,再跑成长与小程序任务,最后跑运营活动。
+		keys = []string{"sweep", "growth", "miniprogram", "campaigns"}
+	}
 	if req.Job == "" || req.Job == "all" {
 		keys = nil
 		for _, j := range JobCatalog {
@@ -886,6 +894,81 @@ func handleTasks(account string) (any, error) {
 	out["campaign_errors"] = campErr
 	out["growth_available"] = true
 	return reply(200, out)
+}
+
+// handleCompensation lists every account's compensation state (panel's
+// compensation card): a pending pack with its deadline, and — as its own
+// row, never as "no compensation" — an account whose query failed, so a
+// deadline-bound pack cannot silently expire.
+func handleCompensation(account string) (any, error) {
+	type row struct {
+		Account  string             `json:"account"`
+		Name     string             `json:"name"`
+		Status   *jobs.Compensation `json:"status,omitempty"`
+		Error    string             `json:"error,omitempty"`
+		Urgent   bool               `json:"urgent,omitempty"`
+		Deadline string             `json:"deadline,omitempty"`
+	}
+	var targets []acct
+	if account != "" {
+		x, err := accountByID(account)
+		if err != nil {
+			return replyErr(404, err.Error())
+		}
+		targets = append(targets, *x)
+	} else {
+		list, err := accounts()
+		if err != nil {
+			return replyErr(502, err.Error())
+		}
+		targets = list
+	}
+	rows := make([]row, len(targets))
+	var wg sync.WaitGroup
+	for i := range targets {
+		i := i
+		x := targets[i]
+		rows[i].Account = x.ID
+		rows[i].Name = x.Name
+		if !applies("rewards", &x) {
+			rows[i].Error = "补偿只适用于国内版个人账号"
+			continue
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			c, err := client(ctx, &x)
+			if err != nil {
+				rows[i].Error = "登录状态不可用: " + err.Error()
+				return
+			}
+			st, err := c.CompensationStatus(ctx)
+			if err != nil {
+				rows[i].Error = err.Error()
+				return
+			}
+			rows[i].Status = st
+			if st.EndTime != "" {
+				rows[i].Deadline = st.EndTime
+				if dl, ok := parseDeadline(st.EndTime); ok && time.Until(dl) < 48*time.Hour {
+					rows[i].Urgent = true
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	return reply(200, map[string]any{"compensation": rows})
+}
+
+func parseDeadline(s string) (time.Time, bool) {
+	for _, layout := range []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05", "2006-01-02"} {
+		if t, err := time.ParseInLocation(layout, s, beijing); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }
 
 func firstOr(s ...string) string {

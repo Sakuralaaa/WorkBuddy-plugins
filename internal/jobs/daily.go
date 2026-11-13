@@ -130,6 +130,21 @@ type Compensation struct {
 	EndTime   string  `json:"end_time"`
 }
 
+// CompensationStatus reads the account's compensation state (status first:
+// a compensation pack has a deadline, and a claim attempted blind can
+// miss it). The caller distinguishes a query failure (error) from "no
+// compensation" (Active false) — the panel shows the former as a red row,
+// never as an empty card.
+func (c *Client) CompensationStatus(ctx context.Context) (*Compensation, error) {
+	env, err := c.billing(ctx, "/billing/meter/compensation-status", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	var st Compensation
+	env.data(&st)
+	return &st, nil
+}
+
 // RunRewards is the streak manager (wb_tasks.run_streak_bonus, panel
 // streak.go): a make-up card for a missed yesterday, the gift and
 // compensation packs, every unlocked streak tier redeemed and every lottery
@@ -168,11 +183,9 @@ func (c *Client) RunRewards(ctx context.Context, now time.Time, claim bool) Resu
 			did = append(did, fmt.Sprintf("新手礼包 +%.0f", d.Credit))
 			r.Credits += d.Credit
 		}
-		if env, err := c.billing(ctx, "/billing/meter/compensation-status", map[string]any{}); err != nil {
+		if st, err := c.CompensationStatus(ctx); err != nil {
 			r.logf("补偿状态查询失败: %v", err)
 		} else {
-			var st Compensation
-			env.data(&st)
 			if st.Active && !st.Claimed && st.CreditNum > 0 {
 				if env2, err := c.billing(ctx, "/billing/meter/claim-compensation", map[string]any{}); err != nil {
 					r.OK = false

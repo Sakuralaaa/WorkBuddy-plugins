@@ -40,6 +40,7 @@ var JobCatalog = []JobInfo{
 	{"miniprogram", "小程序任务链", "Sequential_Tasks / 校园日（真人节奏间隔，较慢）", "cn", "growth_hours"},
 	{"night", "夜猫子", "23:00–08:00 内 glm-5.2 对话，每晚 1 次，累计 3 晚", "cn", "night_hours"},
 	{"intl_daily", "国际版每日活跃", "桌面通道短对话；开启网页通道时再跑完一条云端会话（计入积分的那条）", "ai", "intl_daily_times"},
+	{"sweep", "补领清扫", "每 sweep_minutes 接取并领取已达标的任务（只做接取+领奖，不跑行为链，不看任务白名单）", "cn", "sweep_minutes"},
 }
 
 func jobInfo(key string) *JobInfo {
@@ -73,6 +74,8 @@ func (c *Config) jobOn(key string) bool {
 		return t.Night
 	case "intl_daily":
 		return t.IntlDaily
+	case "sweep":
+		return t.Sweep
 	}
 	return false
 }
@@ -249,6 +252,11 @@ func client(ctx context.Context, x *acct) (*jobs.Client, error) {
 		nick = nick[:i]
 	}
 	c := &jobs.Client{D: d, Site: x.Site, A: a, Nick: nick}
+	// The jobs' headers carry the same device token the chats do: the
+	// account's own token (set by wb.Sign) wins, this is the global/file
+	// fallback.
+	cf := cfg()
+	c.DeviceToken = wb.DeviceTokenOf("", cf.DeviceToken, cf.DeviceTokenFile)
 	c.Chat = chatFor(x.ID, x.Site, a)
 	return c, nil
 }
@@ -441,6 +449,8 @@ func execJob(ctx context.Context, x *acct, key, task string) jobs.Result {
 		return c.RunNight(ctx, claim)
 	case "intl_daily":
 		return c.RunIntlDaily(ctx, intlModels(ctx, c), cf.Tasks.IntlDailyWeb, "Hi")
+	case "sweep":
+		return c.RunTaskSweep(ctx, claim)
 	}
 	return fail("未知任务 " + key)
 }
@@ -565,8 +575,10 @@ func stopScheduler() {
 	sched.running = false
 }
 
-// tick runs the jobs due (all switched-on jobs with force), each account in
-// turn; a tick still running makes the next one wait.
+// tick runs the jobs due (all switched-on jobs with force). Accounts run
+// in parallel (tasks_concurrency, 1–4); each account still runs one job at
+// a time (runJob's per-account lock). A tick still running makes the next
+// one wait.
 func tick(now time.Time, force bool) {
 	sched.Lock()
 	if sched.busy {
@@ -588,7 +600,16 @@ func tick(now time.Time, force bool) {
 	}
 	due := false
 	for _, info := range JobCatalog {
-		if c.jobOn(info.Key) && (force || DueSlot(now, c.slotsOf(info.Key)) != "") {
+		if !c.jobOn(info.Key) {
+			continue
+		}
+		if info.Key == "sweep" {
+			if force || c.sweepMinutes() > 0 {
+				due = true
+			}
+			continue
+		}
+		if force || DueSlot(now, c.slotsOf(info.Key)) != "" {
 			due = true
 		}
 	}
@@ -611,36 +632,104 @@ func tick(now time.Time, force bool) {
 			continue
 		}
 		slot := DueSlot(now, c.slotsOf(info.Key))
-		if slot == "" && !force {
-			continue
-		}
-		for i := range list {
-			x := list[i]
-			if x.Disabled || !applies(info.Key, &x) {
+		if info.Key == "sweep" {
+			// Interval job, not a time-of-day slot: run when the last
+			// sweep is older than sweep_minutes (or never ran).
+			if !force && c.sweepMinutes() <= 0 {
 				continue
 			}
-			if !force {
-				if lastSlot(x.ID, info.Key) == slot {
+			slot = now.In(beijing).Format("2006-01-02 15:04")
+		} else if slot == "" && !force {
+			continue
+		}
+		runAccounts(list, info.Key, slot, day, force, now, c.concurrency())
+	}
+}
+
+// runAccounts runs one job for every account it applies to, in parallel
+// up to n at a time.
+func runAccounts(list []acct, key, slot, day string, force bool, now time.Time, n int) {
+	var targets []acct
+	for i := range list {
+		x := list[i]
+		if x.Disabled || !applies(key, &x) {
+			continue
+		}
+		if !force {
+			if key == "sweep" {
+				// Sweep by elapsed time since the last sweep run.
+				if last := lastRunAt(x.ID, key); !last.IsZero() && now.Sub(last) < time.Duration(cfg().sweepMinutes())*time.Minute {
 					continue
 				}
-				if oncePerDay(info.Key) && okDay(x.ID, info.Key) == day {
-					markSlot(x.ID, info.Key, slot)
+			} else if lastSlot(x.ID, key) == slot {
+				continue
+			}
+			if oncePerDay(key) && okDay(x.ID, key) == day {
+				markSlot(x.ID, key, slot)
+				continue
+			}
+			if key == "checkin" {
+				// A failed check-in retries on a doubling backoff
+				// (15m, 30m, 1h, 2h, cap 4h) instead of waiting for
+				// tomorrow: the old code marked the slot after a
+				// failed run, so a network failure lost the whole day.
+				if tries, next, ok := checkinRetryOf(x.ID, day); ok && tries > 0 && now.Before(next) {
 					continue
 				}
 			}
+		}
+		targets = append(targets, x)
+	}
+	if len(targets) == 0 {
+		return
+	}
+	if n < 1 {
+		n = 1
+	}
+	sem := make(chan struct{}, n)
+	var wg sync.WaitGroup
+	for _, x := range targets {
+		x := x
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Minute)
 			trigger := "schedule"
 			if force {
 				trigger = "manual"
 			}
-			run := runJob(ctx, &x, info.Key, "", trigger)
+			run := runJob(ctx, &x, key, "", trigger)
 			cancel()
-			markSlot(x.ID, info.Key, slot)
-			if run.OK && run.Outcome != "skipped" {
-				markOK(x.ID, info.Key, day)
+			if key == "checkin" {
+				// Settled outcomes (claimed/done/ineligible/inactive)
+				// stand for the day; a failure keeps the slot open
+				// and schedules the next retry.
+				if run.OK {
+					clearCheckinRetry(x.ID, day)
+					markSlot(x.ID, key, slot)
+					if run.Outcome != "skipped" {
+						markOK(x.ID, key, day)
+					}
+				} else {
+					tries, _, _ := checkinRetryOf(x.ID, day)
+					tries++
+					backoff := 15 * time.Minute << uint(min(tries-1, 4))
+					if backoff > 4*time.Hour {
+						backoff = 4 * time.Hour
+					}
+					noteCheckinRetry(x.ID, day, tries, now.Add(backoff))
+				}
+				return
 			}
-		}
+			markSlot(x.ID, key, slot)
+			if run.OK && run.Outcome != "skipped" {
+				markOK(x.ID, key, day)
+			}
+		}()
 	}
+	wg.Wait()
 }
 
 // ensure the import is used
