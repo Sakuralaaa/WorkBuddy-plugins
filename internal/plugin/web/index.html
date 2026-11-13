@@ -349,9 +349,37 @@ function centerKey(){
   }
   return {why:'无法解析管理中心保存的登录信息'+(lastErr?'（'+lastErr+'）':'')};
 }
+// The page sits in the management center's own frame (same origin), and the
+// center already sends its key on every request it makes. So the key is taken
+// from the center itself: a small hook on the center's XMLHttpRequest records
+// the Authorization it sends to /v0/management, then the center is asked to
+// reload this plugin page, which makes it send one. No second password.
+const CAP_KEY='workbuddy-magpie::center-key', CAP_TRY='workbuddy-magpie::center-key-try';
+function capturedKey(){try{return sessionStorage.getItem(CAP_KEY)||''}catch(e){return ''}}
+function hookCenter(){
+  const P=window.parent; if(!P||P===window)return false;
+  try{
+    if(P.__wbMagpieHook)return true;
+    const s=P.document.createElement('script');
+    s.textContent="(function(){if(window.__wbMagpieHook)return;window.__wbMagpieHook=1;var X=XMLHttpRequest.prototype,o=X.open,h=X.setRequestHeader;X.open=function(m,u){this.__wbU=String(u||'');return o.apply(this,arguments)};X.setRequestHeader=function(n,v){try{if(String(n).toLowerCase()==='authorization'&&/^Bearer\\s+/i.test(v)&&/\\/v0\\/management/.test(this.__wbU||''))sessionStorage.setItem('"+CAP_KEY+"',String(v).replace(/^Bearer\\s+/i,''))}catch(e){}return h.apply(this,arguments)}})();";
+    P.document.head.appendChild(s); s.remove();
+    return !!P.__wbMagpieHook;
+  }catch(e){return false}
+}
+function captureFromCenter(){
+  let last=0; try{last=+sessionStorage.getItem(CAP_TRY)||0}catch(e){}
+  if(Date.now()-last<15000)return false;
+  if(!hookCenter())return false;
+  try{sessionStorage.setItem(CAP_TRY,String(Date.now()))}catch(e){}
+  try{window.parent.dispatchEvent(new window.parent.Event('plugin-resources-refresh'));return true}catch(e){return false}
+}
 function initKey(){
+  hookCenter();
+  const cap=capturedKey();
+  if(cap){KEY=cap;KEY_SRC='center';return true}
   const c=centerKey();
   if(c.key){KEY=c.key;KEY_SRC='center';return true}
+  if(captureFromCenter())return false;
   let own=null; try{own=deobfuscate(localStorage.getItem(OWN_KEY)||sessionStorage.getItem(OWN_KEY)||'')}catch(e){}
   if(own){KEY=own;KEY_SRC='own';showKeyNote(c.why,true);return true}
   showKeyNote(c.why,false);askKey(c.why);return false;
@@ -374,7 +402,7 @@ async function req(method,url,body,opts={}){
   if(body!==undefined){if(opts.raw){b=body}else{h['Content-Type']='application/json';b=JSON.stringify(body)}}
   const r=await fetch(url,{method,headers:h,body:b,cache:'no-store'});
   const text=await r.text();let data=null;try{data=text?JSON.parse(text):null}catch(e){data={raw:text}}
-  if(r.status===401&&!opts.key){if(KEY_SRC!=='center'){forgetKey()}throw new Error('管理密钥无效（HTTP 401）')}
+  if(r.status===401&&!opts.key){if(KEY_SRC!=='center'){forgetKey()}else{try{sessionStorage.removeItem(CAP_KEY)}catch(e){}if(captureFromCenter())throw new Error('正在从管理中心重新取得密钥')}throw new Error('管理密钥无效（HTTP 401）')}
   if(!r.ok){const m=(data&&(data.error||data.message))||text||('HTTP '+r.status);throw new Error(typeof m==='string'?m:JSON.stringify(m))}
   return data;
 }

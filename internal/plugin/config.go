@@ -14,7 +14,7 @@ import (
 const ID = "workbuddy-magpie"
 
 // Version is this build's version.
-var Version = "0.2.1"
+var Version = "0.2.2"
 
 // Tasks are the background benefit jobs ported from workbuddy2api-hub, each
 // off until switched on.
