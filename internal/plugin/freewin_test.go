@@ -126,3 +126,30 @@ func TestFreewinPersists(t *testing.T) {
 		t.Fatalf("reloaded rows = %d, want 1", len(got))
 	}
 }
+
+func TestStickyHopRebinds(t *testing.T) {
+	dir := t.TempDir()
+	state.Lock()
+	state.loaded, state.path, state.p = true, filepath.Join(dir, "state"), persisted{}
+	state.p.init()
+	state.Unlock()
+	if h, _ := stickyBind("s1", "a"); h {
+		t.Fatal("first bind hopped")
+	}
+	if h, n := stickyBind("s1", "b"); !h || n != 1 {
+		t.Fatalf("hop to b: %v %d", h, n)
+	}
+	if h, n := stickyBind("s1", "b"); h || n != 1 {
+		t.Fatalf("second turn on b counted again: %v %d", h, n)
+	}
+	state.Lock()
+	state.p.Sticky["old"] = StickyBinding{Session: "old", AuthID: "x", Last: time.Now().Add(-48 * time.Hour).Unix()}
+	state.Unlock()
+	stickyBind("s2", "a")
+	state.Lock()
+	_, kept := state.p.Sticky["old"]
+	state.Unlock()
+	if kept {
+		t.Fatal("expired binding not pruned")
+	}
+}

@@ -77,6 +77,7 @@ type persisted struct {
 var state = struct {
 	sync.Mutex
 	loaded bool
+	dirty  bool
 	path   string
 	p      persisted
 	ring   Ring
@@ -111,33 +112,60 @@ func stickyKey(session string) string {
 
 // stickyBind records that session was served by authID. It reports whether
 // the session hopped accounts (it was bound to another auth and the binding
-// has not expired) and how many hops it has made in total.
+// has not expired) and how many hops it has made in total. A hop rebinds the
+// session to the account now serving it, so the turns that follow on that
+// account count no further hops. Only a new binding or a hop is written at
+// once; a binding merely seen again is saved by the 30-second saver.
 func stickyBind(session, authID string) (hopped bool, hops int) {
 	if session == "" || authID == "" {
 		return false, 0
 	}
 	key := stickyKey(session)
-	now := time.Now().Unix()
+	now := time.Now()
 	state.Lock()
 	defer state.Unlock()
 	loadStateLocked()
 	b, ok := state.p.Sticky[key]
-	if !ok || time.Unix(b.Last, 0).Add(stickyTTL).Before(time.Now()) {
-		state.p.Sticky[key] = StickyBinding{Session: key, AuthID: authID, First: now, Last: now}
+	if !ok || stickyExpired(b, now) {
+		pruneStickyLocked(now)
+		state.p.Sticky[key] = StickyBinding{Session: key, AuthID: authID, First: now.Unix(), Last: now.Unix()}
 		saveStateLocked()
 		return false, 0
 	}
+	b.Last = now.Unix()
 	if b.AuthID == authID {
-		b.Last = now
 		state.p.Sticky[key] = b
-		saveStateLocked()
+		state.dirty = true
+		startUsageSaver()
 		return false, b.Hops
 	}
 	b.Hops++
-	b.Last = now
+	b.AuthID = authID
 	state.p.Sticky[key] = b
 	saveStateLocked()
 	return true, b.Hops
+}
+
+func stickyExpired(b StickyBinding, now time.Time) bool {
+	return time.Unix(b.Last, 0).Add(stickyTTL).Before(now)
+}
+
+// pruneStickyLocked drops the bindings that have expired.
+func pruneStickyLocked(now time.Time) {
+	for k, b := range state.p.Sticky {
+		if stickyExpired(b, now) {
+			delete(state.p.Sticky, k)
+		}
+	}
+}
+
+// saveStateIfDirty writes the state a binding left unsaved.
+func saveStateIfDirty() {
+	state.Lock()
+	defer state.Unlock()
+	if state.dirty {
+		saveStateLocked()
+	}
 }
 
 // stickyBindings are the live session→account bindings, newest first.
@@ -148,7 +176,7 @@ func stickyBindings() []StickyBinding {
 	out := make([]StickyBinding, 0, len(state.p.Sticky))
 	now := time.Now()
 	for _, b := range state.p.Sticky {
-		if time.Unix(b.Last, 0).Add(stickyTTL).Before(now) {
+		if stickyExpired(b, now) {
 			continue
 		}
 		out = append(out, b)
@@ -235,8 +263,8 @@ func saveStateLocked() {
 	}
 	_ = os.MkdirAll(filepath.Dir(state.path), 0o700)
 	tmp := state.path + ".tmp"
-	if os.WriteFile(tmp, raw, 0o600) == nil {
-		_ = os.Rename(tmp, state.path)
+	if os.WriteFile(tmp, raw, 0o600) == nil && os.Rename(tmp, state.path) == nil {
+		state.dirty = false
 	}
 }
 

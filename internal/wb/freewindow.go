@@ -58,7 +58,7 @@ type FreeWindowSpec struct {
 var CNFreeWindow = FreeWindowSpec{
 	Provider: "workbuddy", Model: "deepseek-v4.1-flash",
 	Aliases: []string{"deepseek-v4.1-flash-sg"},
-	Cap:     2e8, Name: "deepseek-v4.1-flash tokens (est.)", Short: "~200M", Unit: "",
+	Cap:     2e8, Name: "Free model tokens", Short: "~200M", Unit: "tokens",
 }
 
 // AIFreeWindow is WorkBuddy AI's window: the same model at 1e8 tokens,

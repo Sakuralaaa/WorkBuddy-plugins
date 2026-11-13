@@ -97,7 +97,7 @@ CGO_ENABLED=1 go build -buildmode=c-shared -o workbuddy-magpie.so ./cmd/plugin
 
 请求指纹按桌面客户端的完整头族发出：`User-Agent: WorkBuddy/<版本> WorkBuddy/<版本> CLI/<版本>`、`X-IDE-Name/Version/Type`、`X-Agent-Intent/Purpose/Type/Runtime`、`X-Stainless-*`，对话另带 `X-Conversation-ID / X-Conversation-Request-ID / X-Root-Request-ID / X-Conversation-Message-ID`（同一会话同一轮次用同一组 id，换账号时按新账号重算，提示缓存不跨账号共享）以及 `prompt_cache_key`。`X-Device-Token` 三个来源按优先级取用：账号凭据里的 `device_token` → 配置 `device_token` → 配置 `device_token_file` 指定的文件（桌面端生成的 token，5 分钟缓存，超过 1KB 忽略）；三个都没有就不发这个头。
 
-粘性会话：会话 id 从请求头/元数据里取，取不到时再从请求体 `conversation_id` 或 `metadata.session_id` 里取。会话与首次服务的账号绑定记录在状态文件里（只存会话 id 的哈希，不存原文），24 小时滚动过期。注意：**选哪个账号是 CPA 路由决定的，插件改不了**——会话换账号时插件只记录一次跳号（状态页 `status` 的 `sticky` 字段可见）、记一条警告日志，然后继续用新账号的 id 发请求。想让一个会话真正钉在一个账号上，要在 CPA 侧用单账号的路由组/渠道。
+粘性会话：会话 id 从请求头/元数据里取，取不到时再从请求体 `conversation_id` 或 `metadata.session_id` 里取。会话与首次服务的账号绑定记录在状态文件里（只存会话 id 的哈希，不存原文），24 小时滚动过期。注意：**选哪个账号是 CPA 路由决定的，插件改不了**——会话换账号时插件记录一次跳号并改绑到新账号（之后在新账号上的轮次不再重复计数）（状态页 `status` 的 `sticky` 字段可见）、记一条警告日志，然后继续用新账号的 id 发请求。想让一个会话真正钉在一个账号上，要在 CPA 侧用单账号的路由组/渠道。
 
 签到失败会按 15 分钟、30 分钟、1 小时、2 小时、4 小时（封顶）翻倍退避重试，直到当天落定（已领/已签/无资格/活动未开都算落定，当天不再跑）；以前失败一次就把时段标记为已执行，整天不再重试。
 

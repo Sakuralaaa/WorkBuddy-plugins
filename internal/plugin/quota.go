@@ -48,7 +48,7 @@ func quotaFetch(req []byte) (any, error) {
 		}
 		g.Buckets = append(g.Buckets, pluginapi.QuotaBucket{Window: w.Name, RemainingFraction: left, ResetTime: w.ResetsAt, Description: w.Display})
 		if w.Limit > 0 {
-			out.Summary = append(out.Summary, pluginapi.QuotaMetric{Key: w.Name, Label: w.Name, Value: w.Limit - w.Amount, Unit: w.Unit})
+			out.Summary = append(out.Summary, pluginapi.QuotaMetric{Key: w.Name, Label: w.Name, Value: max(0, w.Limit-w.Amount), Unit: w.Unit})
 		}
 	}
 	out.Groups = append(out.Groups, g)
@@ -67,7 +67,7 @@ func quotaFetch(req []byte) (any, error) {
 		}
 		out.Groups = append(out.Groups, pluginapi.QuotaGroup{DisplayName: w.Name, Buckets: []pluginapi.QuotaBucket{{Window: w.Name, RemainingFraction: left, ResetTime: w.ResetsAt, Description: desc}}})
 		if w.Limit > 0 {
-			out.Summary = append(out.Summary, pluginapi.QuotaMetric{Key: w.Name, Label: w.Name, Value: w.Limit - w.Amount, Unit: w.Unit})
+			out.Summary = append(out.Summary, pluginapi.QuotaMetric{Key: w.Name, Label: w.Name, Value: max(0, w.Limit-w.Amount), Unit: w.Unit})
 		}
 	}
 	if runs := lastRuns(r.AuthID); len(runs) > 0 {

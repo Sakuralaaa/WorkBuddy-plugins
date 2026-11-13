@@ -49,8 +49,8 @@ func TestStickyBindHop(t *testing.T) {
 	if hopped, hops := stickyBind("sess-a", "auth-2"); !hopped || hops != 1 {
 		t.Fatalf("different auth: hopped %v hops %d", hopped, hops)
 	}
-	// The binding still names the first account.
-	if got := stickyBindings(); len(got) != 1 || got[0].AuthID != "auth-1" || got[0].Hops != 1 {
+	// A hop rebinds the session to the account now serving it.
+	if got := stickyBindings(); len(got) != 1 || got[0].AuthID != "auth-2" || got[0].Hops != 1 {
 		t.Fatalf("bindings %+v", got)
 	}
 }

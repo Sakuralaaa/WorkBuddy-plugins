@@ -157,6 +157,7 @@ func startUsageSaver() {
 				freewin.Lock()
 				saveFreewinLocked()
 				freewin.Unlock()
+				saveStateIfDirty()
 				saveCreditStore()
 			}
 		}()
@@ -445,6 +446,7 @@ func clearUsage() {
 	usage.b = map[usageKey]*usageBucket{}
 	usage.dirty = true
 	saveUsageLocked()
+	clearFreewin()
 }
 
 // ---- the request log ---------------------------------------------------------------

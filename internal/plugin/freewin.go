@@ -168,3 +168,14 @@ func freeWindowFor(authID string, site *wb.Site) *wb.Window {
 	}
 	return wb.FreeWindowOf(freeRows(authID, site.AI), authID, time.Now(), wb.FreeWindowSpecFor(site.AI))
 }
+
+// clearFreewin drops the free window's rows with the usage ledger they sit
+// beside, so a cleared ledger shows no stale estimate.
+func clearFreewin() {
+	freewin.Lock()
+	defer freewin.Unlock()
+	loadFreewinLocked()
+	freewin.rows = nil
+	freewin.dirty = true
+	saveFreewinLocked()
+}
