@@ -1,0 +1,43 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: amd64
+          - runner: ubuntu-22.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.x"
+      - name: build
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          CGO_ENABLED=1 go build -trimpath -ldflags "-s -w" -buildmode=c-shared -o workbuddy-magpie.so ./cmd/plugin
+          zip -j "workbuddy-magpie_${V}_linux_${{ matrix.arch }}.zip" workbuddy-magpie.so
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zip-${{ matrix.arch }}
+          path: "*.zip"
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - run: sha256sum *.zip > checksums.txt && cat checksums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
+            checksums.txt

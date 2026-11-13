@@ -36,3 +36,16 @@ workbuddy2api-hub 称 WorkBuddy 自 2026-10-23 起收紧对非官方客户端的
 ## 致谢
 
 见 [NOTICE](NOTICE)。MIT License。
+
+## 从插件市场安装
+
+在 CPA 的 `config.yaml` 加上本仓库的商店源（CPA 读的是 registry.json 地址，不是仓库主页）：
+
+```yaml
+plugins:
+  enabled: true
+  store-sources:
+    - "https://raw.githubusercontent.com/Sakuralaaa/WorkBuddy-plugins/main/registry.json"
+```
+
+重启后管理面板的插件市场里会出现 “WorkBuddy（国内版 + 国际版）”，点安装即可。发布由 `v*` 标签触发 GitHub Actions 构建 linux amd64/arm64。

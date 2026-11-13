@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "id": "workbuddy-magpie",
+      "name": "WorkBuddy (CN + Intl)",
+      "description": "WorkBuddy China and WorkBuddy AI (international) as CLIProxyAPI providers: OAuth sign-in, token refresh, models, chat, credits quota and the China daily check-in. Ported from magpie.",
+      "author": "Sakuralaaa",
+      "version": "0.1.0",
+      "repository": "https://github.com/Sakuralaaa/WorkBuddy-plugins",
+      "homepage": "https://github.com/Sakuralaaa/WorkBuddy-plugins",
+      "license": "MIT",
+      "tags": ["Provider", "WorkBuddy"],
+      "locales": {
+        "zh-CN": {
+          "name": "WorkBuddy（国内版 + 国际版）",
+          "description": "把 WorkBuddy 国内版和国际版接入 CLIProxyAPI：OAuth 登录、令牌刷新、模型列表、对话、额度查询和国内版每日签到。移植自 magpie。"
+        }
+      }
+    }
+  ]
+}
