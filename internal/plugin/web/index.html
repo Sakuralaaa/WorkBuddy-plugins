@@ -6,26 +6,28 @@
 <title>WorkBuddy</title>
 <style>
 :root{
-  --bg:#f6f6f5;--bg2:#efeff0;--card:#ffffff;--text:#1d1e20;--sub:#5c5f66;--faint:#8d9097;
-  --line:#e4e5e8;--line2:#d4d6da;--soft:#f2f2f3;--hover:#ebecee;
-  --pri:#1d1e20;--pri-soft:#ebecee;--pri-text:#1d1e20;--on-pri:#ffffff;
-  --acc:#4a6484;--acc-soft:#e8edf3;--acc-text:#3d5675;
-  --ok:#4a6484;--ok-soft:#e8edf3;--warn:#9a6a1f;--warn-soft:#f4eee2;
-  --bad:#a35f16;--bad-soft:#f6ece0;--ai:#7b7f88;--ai-soft:#eeeff1;
-  --radius:12px;--radius-sm:8px;
-  --shadow:0 1px 2px rgba(29,30,32,.05);
-  --shadow-lg:0 12px 32px -10px rgba(29,30,32,.22),0 4px 10px -4px rgba(29,30,32,.08);
-  --ring:0 0 0 3px rgba(74,100,132,.18);
+  --bg:#f3f6fb;--bg2:#eaf0f8;--card:#ffffff;--text:#1f2a37;--sub:#5b6676;--faint:#8a94a3;
+  --line:#e6ebf2;--line2:#d5dce7;--soft:#f5f8fc;--hover:#edf2f9;
+  --pri:#3b82f6;--pri-soft:#e8f0fe;--pri-text:#2563eb;--on-pri:#ffffff;
+  --acc:#3b82f6;--acc-soft:#e8f0fe;--acc-text:#2563eb;
+  --ok:#10b981;--ok-soft:#e3f7ef;--warn:#d97706;--warn-soft:#fdf3e1;
+  --bad:#e5793a;--bad-soft:#fdeee4;--ai:#0e9fb3;--ai-soft:#e2f5f8;
+  --bar-c:#14b886;--line-c:#3b82f6;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 1px 3px rgba(31,42,55,.05);
+  --shadow-lg:0 12px 32px -10px rgba(31,42,55,.2),0 4px 10px -4px rgba(31,42,55,.08);
+  --ring:0 0 0 3px rgba(59,130,246,.2);
 }
 html[data-theme=dark]{
-  --bg:#121315;--bg2:#17181a;--card:#1b1c1f;--text:#e8e9eb;--sub:#a2a5ab;--faint:#74777e;
-  --line:#2a2b2f;--line2:#35373b;--soft:#212225;--hover:#26272a;
-  --pri:#e8e9eb;--pri-soft:#2a2b2f;--pri-text:#e8e9eb;--on-pri:#121315;
-  --acc:#8fa8c6;--acc-soft:#1f2630;--acc-text:#a9bdd6;
-  --ok:#8fa8c6;--ok-soft:#1f2630;--warn:#d1a35c;--warn-soft:#2a2418;
-  --bad:#d49456;--bad-soft:#2c2219;--ai:#a2a5ab;--ai-soft:#26272a;
-  --shadow:0 0 0 1px rgba(255,255,255,.015);--shadow-lg:0 16px 40px -10px rgba(0,0,0,.6);
-  --ring:0 0 0 3px rgba(143,168,198,.25);
+  --bg:#0f141b;--bg2:#141a22;--card:#18202a;--text:#e6ebf2;--sub:#9aa6b6;--faint:#6f7b8b;
+  --line:#253040;--line2:#2f3b4d;--soft:#1c2531;--hover:#212b38;
+  --pri:#4f8ff7;--pri-soft:#1c2a40;--pri-text:#7aaaf9;--on-pri:#ffffff;
+  --acc:#4f8ff7;--acc-soft:#1c2a40;--acc-text:#7aaaf9;
+  --ok:#2cc995;--ok-soft:#173129;--warn:#f0a43a;--warn-soft:#30261a;
+  --bad:#f08a4b;--bad-soft:#33231a;--ai:#3cc0d2;--ai-soft:#16303a;
+  --bar-c:#22c58f;--line-c:#5b9bf8;
+  --shadow:0 0 0 1px rgba(255,255,255,.02);--shadow-lg:0 16px 40px -10px rgba(0,0,0,.6);
+  --ring:0 0 0 3px rgba(79,143,247,.3);
 }
 *{box-sizing:border-box}
 html{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
@@ -196,6 +198,20 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
 #usageStats{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
 #usageStats .stat .v{font-size:22px}
 th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+.combo{position:relative;width:100%;overflow:hidden}
+.combo svg{display:block}
+.combo .gl{stroke:var(--line);stroke-dasharray:4 4}
+.combo .ax{font-size:11px;fill:var(--faint)}
+.combo .ax2{fill:var(--line-c)}
+.combo .cbar{fill:var(--bar-c)}
+.combo .ln{fill:none;stroke:var(--line-c);stroke-width:2.2;stroke-linejoin:round}
+.combo .area{fill:var(--line-c);opacity:.06}
+.combo .pt{fill:var(--line-c);stroke:var(--card);stroke-width:1.5}
+.combo .pt.bad{fill:var(--bad)}
+.combo .guide{stroke:var(--line2);stroke-dasharray:3 3}
+.combo .tip{position:absolute;pointer-events:none;background:var(--card);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-lg);font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;white-space:nowrap;z-index:5;transform:translate(-50%,-115%)}
+.legend{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:400;color:var(--sub)}
+.legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 -1px 0 10px}
 .chart{position:relative;height:200px;display:flex;align-items:flex-end;gap:5px;padding:8px 0 22px;border-bottom:1px solid var(--line)}
 .chart .col{flex:1;min-width:2px;position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
 .chart .col i{display:block;background:color-mix(in srgb,var(--acc) 78%,var(--card));border-radius:2px 2px 0 0;min-height:1px}
@@ -329,8 +345,9 @@ td.src{max-width:260px;font-size:12px;color:var(--sub);overflow:hidden;text-over
     </div>
     <div class="stats" id="usageStats"></div>
     <div class="card"><h2>趋势 <span class="muted small" id="usageStep" style="font-weight:400"></span><span class="spacer"></span>
-      <div class="tabs2" id="usageMetric" style="margin:0"><button data-k="n" class="on">请求数</button><button data-k="tt">Token</button><button data-k="cr">积分</button></div></h2>
-      <div id="usageChart" class="chart"></div></div>
+      <span class="legend"><i class="dot" style="background:var(--line-c)"></i>调用 <i class="dot" style="background:var(--bar-c)"></i><span id="usageBarName">Token</span></span>
+      <div class="tabs2" id="usageMetric" style="margin:0 0 0 12px"><button data-k="tt" class="on">Token</button><button data-k="cr">积分</button></div></h2>
+      <div id="usageChart" class="combo"></div></div>
     <div class="card"><h2>明细 <span class="spacer"></span>
       <div class="tabs2" id="usageDim" style="margin:0"><button data-d="by_account" class="on">按账号</button><button data-d="by_model">按模型</button></div></h2>
       <div style="overflow:auto"><table><thead id="usageHead"></thead><tbody id="usageRows"></tbody></table></div>
@@ -781,7 +798,7 @@ async function loadComposition(force){
 }
 
 // ---- usage ----
-S.usageH=24;S.usageMetric='n';S.usageDim='by_account';
+S.usageH=24;S.usageMetric='tt';S.usageDim='by_account';
 document.querySelectorAll('#usageRange button').forEach(b=>b.onclick=()=>{S.usageH=+b.dataset.h;document.querySelectorAll('#usageRange button').forEach(x=>x.classList.toggle('on',x===b));loadUsage()});
 document.querySelectorAll('#usageMetric button').forEach(b=>b.onclick=()=>{S.usageMetric=b.dataset.k;document.querySelectorAll('#usageMetric button').forEach(x=>x.classList.toggle('on',x===b));drawUsage()});
 document.querySelectorAll('#usageDim button').forEach(b=>b.onclick=()=>{S.usageDim=b.dataset.d;document.querySelectorAll('#usageDim button').forEach(x=>x.classList.toggle('on',x===b));drawUsage()});
@@ -803,14 +820,8 @@ function drawUsage(){
   const step=u.step==='day'?86400e3:3600e3,k=S.usageMetric;const pts={};(u.series||[]).forEach(p=>pts[p.t]=p);
   const off=8*3600e3;const align=ms=>u.step==='day'?Math.floor((ms+off)/step)*step-off:Math.floor(ms/step)*step;
   const cols=[];for(let x=align(u.from)+step;x<=align(u.to);x+=step)cols.push(pts[x]||{t:x,n:0,f:0,tt:0,cr:0});
-  const val=p=>k==='n'?p.n:k==='tt'?p.tt:p.cr;const max=Math.max(1e-9,...cols.map(val));
-  const every=Math.ceil(cols.length/8);const p2=x=>String(x).padStart(2,'0');
-  const lab=ms=>{const d=new Date(ms);return u.step==='day'?p2(d.getMonth()+1)+'-'+p2(d.getDate()):p2(d.getHours())+':00'};
-  const ch=document.getElementById('usageChart');
-  ch.innerHTML=cols.map((p,i)=>{const v=val(p),h=v/max*100,fh=k==='n'&&p.n?p.f/p.n*h:0;
-    return `<div class="col" data-tip="${esc(lab(p.t))} · ${p.n} 次${p.f?'（失败 '+p.f+'）':''} · ${fmtNum(p.tt)} token · ${fmtNum(p.cr)} 积分">${fh?`<i class="f" style="height:${fh}%"></i>`:''}<i style="height:${Math.max(0,h-fh)}%"></i>${i%every===0?`<span class="lb">${lab(p.t)}</span>`:''}</div>`}).join('');
-  ch.onmousemove=e=>{const c=e.target.closest('.col');let tip=ch.querySelector('.tip');if(!c){tip&&tip.remove();return}if(!tip){tip=document.createElement('div');tip.className='tip';ch.appendChild(tip)}tip.textContent=c.dataset.tip;const r=ch.getBoundingClientRect(),cr=c.getBoundingClientRect();tip.style.left=(cr.left-r.left+cr.width/2)+'px';tip.style.top='8px'};
-  ch.onmouseleave=()=>{const tip=ch.querySelector('.tip');tip&&tip.remove()};
+  document.getElementById('usageBarName').textContent=k==='cr'?'积分':'Token';
+  drawCombo(document.getElementById('usageChart'),cols,k,u.step);
   const byA=S.usageDim==='by_account';const list=u[S.usageDim]||[];
   document.getElementById('usageHead').innerHTML=`<tr><th>${byA?'账号':'模型'}</th><th class="num">请求</th><th class="num">成功率</th><th class="num">输入 / 输出</th><th class="num">缓存命中</th><th class="num">实扣积分</th><th class="num">每百万 Token</th><th class="num">平均耗时</th><th class="num">首字</th></tr>`;
   document.getElementById('usageRows').innerHTML=list.length?list.map(r=>{const tot=(r.pt||0)+(r.ct||0);
@@ -819,6 +830,39 @@ function drawUsage(){
     <td class="num">${fmtNum(r.pt)} / ${fmtNum(r.ct)}${tot?`<div class="mix" style="margin-left:auto;max-width:120px"><i class="p" style="width:${(r.pt||0)/tot*100}%"></i><i class="c" style="width:${(r.ct||0)/tot*100}%"></i></div>`:''}</td>
     <td class="num">${r.pt?pct(r.cache_rate):'—'}</td><td class="num">${r.crn?fmtNum(r.cr):'—'}</td><td class="num">${r.crt?fmtNum(r.credits_per_1m):'—'}</td><td class="num">${fmtMs(r.avg_ms)}</td><td class="num">${fmtMs(r.avg_ttfb_ms)}</td></tr>`}).join('')
     :'<tr><td colspan="9" class="empty">这段时间没有经过插件的请求</td></tr>';
+}
+// bars (token or credits, left axis) + smooth line (calls, right axis)
+function niceStep(top,n){if(top<=0)return 1;const raw=top/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,2.5,5,10].map(m=>m*mag).find(st=>st>=raw)}
+function kfmt(v){return v>=1e6?(+(v/1e6).toFixed(1))+'M':v>=1e3?(+(v/1e3).toFixed(1))+'K':String(+(+v).toFixed(2))}
+function drawCombo(el,cols,k,stepKind){
+  const W=Math.max(320,el.clientWidth||900),H=260,L=52,R=40,T=14,B=30,iw=W-L-R,ih=H-T-B,n=cols.length||1;
+  const bv=p=>k==='cr'?(p.cr||0):(p.tt||0);
+  const N=5,bs=niceStep(Math.max(...cols.map(bv),0),N)||1,ls=Math.max(1,Math.ceil(niceStep(Math.max(...cols.map(p=>p.n||0),0),N)||1));
+  const bmax=bs*N,lmax=ls*N,cw=iw/n,bw=Math.max(2,Math.min(22,cw*.42));
+  const x=i=>L+cw*i+cw/2,yb=v=>T+ih-v/bmax*ih,yl=v=>T+ih-v/lmax*ih;
+  const p2=v=>String(v).padStart(2,'0'),lab=ms=>{const d=new Date(ms);return stepKind==='day'?p2(d.getMonth()+1)+'-'+p2(d.getDate()):p2(d.getHours())+':00'};
+  const every=Math.ceil(n/Math.max(4,Math.floor(iw/70)));
+  let g='';
+  for(let i=0;i<=N;i++){const y=T+ih-ih*i/N;g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" class="gl"${i?'':' style="stroke-dasharray:none"'}/>`+
+    `<text x="${L-8}" y="${y+4}" text-anchor="end" class="ax">${kfmt(bs*i)}</text><text x="${W-R+8}" y="${y+4}" class="ax ax2">${ls*i}</text>`}
+  cols.forEach((p,i)=>{const v=bv(p);if(v>0){const y=yb(v);g+=`<rect x="${x(i)-bw/2}" y="${y}" width="${bw}" height="${T+ih-y}" rx="3" class="cbar"/>`}
+    if(i%every===0)g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" class="ax">${lab(p.t)}</text>`});
+  const pts=cols.map((p,i)=>[x(i),yl(p.n||0)]);
+  let d='';pts.forEach((q,i)=>{if(!i){d=`M${q[0]},${q[1]}`;return}const a=pts[i-2]||pts[i-1],b0=pts[i-1],c=q,e=pts[i+1]||q;
+    let c1y=b0[1]+(c[1]-a[1])/6,c2y=c[1]-(e[1]-b0[1])/6;const lo=Math.max(b0[1],c[1]),hi=Math.min(b0[1],c[1]);c1y=Math.min(T+ih,c1y);c2y=Math.min(T+ih,c2y);
+    d+=` C${b0[0]+(c[0]-a[0])/6},${c1y} ${c[0]-(e[0]-b0[0])/6},${c2y} ${c[0]},${c[1]}`});
+  if(pts.length>1)g+=`<path d="${d} L${pts[pts.length-1][0]},${T+ih} L${pts[0][0]},${T+ih} Z" class="area"/><path d="${d}" class="ln"/>`;
+  if(n<=48)pts.forEach((q,i)=>{g+=`<circle cx="${q[0]}" cy="${q[1]}" r="3" class="pt${cols[i].f?' bad':''}"/>`});
+  g+=`<line id="cGuide" x1="0" x2="0" y1="${T}" y2="${T+ih}" class="guide" style="display:none"/>`;
+  cols.forEach((p,i)=>{g+=`<rect x="${L+cw*i}" y="${T}" width="${cw}" height="${ih}" fill="transparent" data-i="${i}"/>`});
+  el.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg><div class="tip" style="display:none"></div>`;
+  const tip=el.querySelector('.tip'),guide=el.querySelector('#cGuide');
+  el.onmousemove=e=>{const r=e.target.closest('rect[data-i]');if(!r){tip.style.display='none';guide.style.display='none';return}
+    const i=+r.dataset.i,p=cols[i];tip.innerHTML=`<b>${esc(lab(p.t))}</b><br>调用 ${p.n||0}${p.f?' · 失败 '+p.f:''}<br>${fmtNum(p.tt||0)} token · ${fmtNum(p.cr||0)} 积分`;
+    tip.style.display='block';tip.style.left=Math.min(Math.max(x(i),80),W-80)+'px';tip.style.top=Math.max(40,yl(p.n||0))+'px';
+    guide.setAttribute('x1',x(i));guide.setAttribute('x2',x(i));guide.style.display=''};
+  el.onmouseleave=()=>{tip.style.display='none';guide.style.display='none'};
+  if(!el._ro&&window.ResizeObserver){let w=W;el._ro=new ResizeObserver(()=>{if(Math.abs(el.clientWidth-w)>20){w=el.clientWidth;drawUsage()}});el._ro.observe(el)}
 }
 async function clearUsageAll(){if(!confirm('清空全部用量记录？'))return;try{await pl('POST','usage/clear');toast('已清空');loadUsage()}catch(e){toast(e.message,true)}}
 
