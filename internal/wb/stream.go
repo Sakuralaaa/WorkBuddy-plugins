@@ -169,6 +169,29 @@ func renameLine(l string, names map[string]string) string {
 // taken out (unsaid). Each event comes without its blank line; a final
 // partial event, if any, comes last.
 func ChatStream(r io.Reader, names map[string]string, emit func(ev string) error) error {
+	return ChatStreamRepair(r, names, nil, emit)
+}
+
+// ChatStreamRepair is ChatStream with the model's own tool-call markup, when
+// it leaks into the text, turned back into tool_calls (see dsml.go).
+func ChatStreamRepair(r io.Reader, names map[string]string, repair *MarkupRepair, emit func(ev string) error) error {
+	if repair.Enabled() {
+		ms := &markupStream{r: repair, maxIdx: -1}
+		out := emit
+		emit = func(ev string) error {
+			for _, e := range ms.event(ev) {
+				if err := out(e); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		defer func() {
+			for _, e := range ms.flush() {
+				_ = out(e)
+			}
+		}()
+	}
 	u := NewUnsaid()
 	br := bufio.NewReaderSize(r, 64*1024)
 	var cur []string

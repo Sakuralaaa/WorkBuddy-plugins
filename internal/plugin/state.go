@@ -69,7 +69,7 @@ func channelFor(site *wb.Site) *wb.Channel {
 		mk := func(get func() *wb.Site) *wb.Channel {
 			ch := wb.NewChannel(get, func() wb.Options {
 				c := cfg()
-				return wb.Options{FreeOnly: c.freeOnly(get()), HideDsh: c.hideDsh(), Disabled: c.disabled(get())}
+				return wb.Options{FreeOnly: c.freeOnly(get()), HideDsh: c.hideDsh(), Disabled: c.disabled(get()), CacheKey: c.cacheKey()}
 			})
 			ch.Stored = heldAccount
 			ch.Save = func(authID string, a *wb.Account) {

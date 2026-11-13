@@ -538,11 +538,17 @@ func startScheduler() {
 		case <-time.After(20 * time.Second):
 		}
 		tick(time.Now(), false)
+		if cfg().schedulerOn() {
+			creditsTick(time.Now())
+		}
 		for {
 			select {
 			case <-stop:
 				return
 			case now := <-t.C:
+				if cfg().schedulerOn() {
+					creditsTick(now)
+				}
 				tick(now, false)
 			}
 		}

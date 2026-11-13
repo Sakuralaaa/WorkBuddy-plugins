@@ -316,7 +316,11 @@ func (r executorRequest) OriginalRequestOr() []byte {
 
 func (c *call) events(res *wb.ChatResult, emit func(ev string) error) error {
 	if c.upstream == fmtChat {
-		return wb.ChatStream(res.Stream, res.Names, emit)
+		var repair *wb.MarkupRepair
+		if cfg().toolRepair() {
+			repair = wb.NewMarkupRepair(wb.ToolNameAllowlist(c.body), true)
+		}
+		return wb.ChatStreamRepair(res.Stream, res.Names, repair, emit)
 	}
 	return wb.SSEEvents(res.Stream, emit)
 }
@@ -353,7 +357,7 @@ func execute(raw []byte) (any, error) {
 	m := newMeter()
 	res, err := c.fetch(ctx)
 	if err != nil {
-		noteUsage(c, m, false)
+		noteUsage(c, m, err)
 		return nil, err
 	}
 	defer res.Close()
@@ -365,7 +369,7 @@ func execute(raw []byte) (any, error) {
 	} else {
 		var events []string
 		if err := c.events(res, func(ev string) error { m.see(ev); events = append(events, ev); return nil }); err != nil {
-			noteUsage(c, m, false)
+			noteUsage(c, m, err)
 			return nil, fail(pluginabi.ErrorCodeStreamTruncated, c.site.Name+"'s answer broke off: "+err.Error(), http.StatusBadGateway)
 		}
 		if c.upstream == fmtClaude {
@@ -378,7 +382,7 @@ func execute(raw []byte) (any, error) {
 		var param any
 		body = sdktranslator.TranslateNonStream(ctx, c.upstream, c.out, c.model, c.req.OriginalRequestOr(), c.body, body, &param)
 	}
-	noteUsage(c, m, true)
+	noteUsage(c, m, nil)
 	return pluginapi.ExecutorResponse{Payload: body, Headers: answerHeaders(res.Header, false)}, nil
 }
 
@@ -396,7 +400,7 @@ func executeStream(raw []byte) (any, error) {
 	res, err := c.fetch(ctx)
 	if err != nil {
 		cancel()
-		noteUsage(c, m, false)
+		noteUsage(c, m, err)
 		return nil, err
 	}
 	if streamID == "" {
@@ -415,7 +419,7 @@ func executeStream(raw []byte) (any, error) {
 			}
 			return nil
 		})
-		noteUsage(c, m, serr == nil)
+		noteUsage(c, m, serr)
 		for _, f := range r.tail() {
 			chunks = append(chunks, chunk{Payload: f})
 		}
@@ -430,7 +434,7 @@ func executeStream(raw []byte) (any, error) {
 			b, _ := io.ReadAll(res.Stream)
 			m.first = time.Now()
 			m.seeJSON(b)
-			noteUsage(c, m, true)
+			noteUsage(c, m, nil)
 			for _, f := range r.frames("data: " + string(bytes.TrimSpace(b))) {
 				if emit(streamID, f) != nil {
 					return
@@ -451,7 +455,7 @@ func executeStream(raw []byte) (any, error) {
 			}
 			return nil
 		})
-		noteUsage(c, m, err == nil)
+		noteUsage(c, m, err)
 		if err != nil {
 			closeStream(streamID, &pluginabi.Error{Code: pluginabi.ErrorCodeStreamTruncated, Message: c.site.Name + "'s stream broke off: " + err.Error(), HTTPStatus: http.StatusBadGateway})
 			return

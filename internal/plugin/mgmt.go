@@ -41,6 +41,8 @@ var routes = []route{
 	{"GET", base + "models", "WorkBuddy: live model list of a build (?build=cn|ai&account=)"},
 	{"GET", base + "tasks", "WorkBuddy: an account's task center (?account=)"},
 	{"POST", base + "keys/check", "WorkBuddy: check an API key with WorkBuddy before it is saved"},
+	{"GET", base + "credits/history", "WorkBuddy: credits left over time (?hours=&account=)"},
+	{"GET", base + "requests", "WorkBuddy: the last requests relayed, numbers only (?limit=&failed=1)"},
 	{"GET", base + "usage", "WorkBuddy: requests, tokens and credits relayed (?hours=&account=)"},
 	{"POST", base + "usage/clear", "WorkBuddy: clear the usage ledger"},
 	{"GET", base + "credits/composition", "WorkBuddy: every account's credit packages, by expiry day (?refresh=1)"},
@@ -106,6 +108,12 @@ func managementHandle(raw []byte) (any, error) {
 		return handleAccounts()
 	case method == "GET" && path == base+"credits":
 		return handleCredits(d, q.Get("account"), q.Get("refresh") != "")
+	case method == "GET" && path == base+"credits/history":
+		h, _ := strconv.Atoi(q.Get("hours"))
+		return handleCreditHistory(h, q.Get("account"))
+	case method == "GET" && path == base+"requests":
+		n, _ := strconv.Atoi(q.Get("limit"))
+		return reply(200, map[string]any{"requests": recentRequests(n, q.Get("failed") != ""), "size": reqLogSize})
 	case method == "GET" && path == base+"usage":
 		h, _ := strconv.Atoi(q.Get("hours"))
 		return handleUsage(h, q.Get("account"))
@@ -404,6 +412,15 @@ func creditsOf(ctx context.Context, d HostDoer, x acct) creditsView {
 // page asks with ?refresh=1 to force a fresh read.
 const creditsTTL = 5 * time.Minute
 
+// creditsMaxAge is how old a kept reading may be: creditsTTL, or a little
+// over the background interval when readings are taken in the background.
+func creditsMaxAge() time.Duration {
+	if every := cfg().creditsRefresh(); every > 0 && every+2*time.Minute > creditsTTL {
+		return every + 2*time.Minute
+	}
+	return creditsTTL
+}
+
 type creditsEntry struct {
 	at time.Time
 	v  creditsView
@@ -415,10 +432,11 @@ var (
 )
 
 func cachedCredits(id string) (creditsView, time.Time, bool) {
+	loadCreditStore()
 	creditsMu.Lock()
 	defer creditsMu.Unlock()
 	e, ok := creditsCache[id]
-	if !ok || time.Since(e.at) > creditsTTL {
+	if !ok || time.Since(e.at) > creditsMaxAge() {
 		return creditsView{}, time.Time{}, false
 	}
 	return e.v, e.at, true
@@ -428,9 +446,11 @@ func storeCredits(id string, v creditsView) {
 	if v.Error != "" {
 		return
 	}
+	now := time.Now()
 	creditsMu.Lock()
-	creditsCache[id] = creditsEntry{at: time.Now(), v: v}
+	creditsCache[id] = creditsEntry{at: now, v: v}
 	creditsMu.Unlock()
+	noteCredits(id, v, now)
 }
 
 func handleCredits(d HostDoer, account string, refresh bool) (any, error) {
@@ -491,7 +511,7 @@ func handleCredits(d HostDoer, account string, refresh bool) (any, error) {
 			oldest = t
 		}
 	}
-	return reply(200, map[string]any{"accounts": out, "summary": sum, "as_of": oldest, "ttl_ms": creditsTTL.Milliseconds()})
+	return reply(200, map[string]any{"accounts": out, "summary": sum, "as_of": oldest, "ttl_ms": creditsMaxAge().Milliseconds(), "background_ms": cfg().creditsRefresh().Milliseconds()})
 }
 
 // Packages are read only when the page opens an account's list: two more

@@ -2,6 +2,8 @@ package plugin
 
 import (
 	"encoding/json"
+	"errors"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -152,6 +154,7 @@ func startUsageSaver() {
 				usage.Lock()
 				saveUsageLocked()
 				usage.Unlock()
+				saveCreditStore()
 			}
 		}()
 	})
@@ -163,6 +166,7 @@ type usageMeter struct {
 	pt, ct, tt, ch int64
 	credit         float64
 	hasCredit      bool
+	errMsg         string // an error frame the answer carried
 }
 
 func newMeter() *usageMeter { return &usageMeter{start: time.Now()} }
@@ -192,6 +196,23 @@ func (m *usageMeter) see(ev string) {
 		}
 		if m.first.IsZero() {
 			m.first = time.Now()
+		}
+		if strings.Contains(p, `"error"`) {
+			var e struct {
+				Error any `json:"error"`
+			}
+			if json.Unmarshal([]byte(p), &e) == nil && e.Error != nil {
+				switch v := e.Error.(type) {
+				case string:
+					m.errMsg = v
+				case map[string]any:
+					if s, ok := v["message"].(string); ok {
+						m.errMsg = s
+					} else {
+						m.errMsg = "error frame"
+					}
+				}
+			}
 		}
 		if !strings.Contains(p, "usage") {
 			continue
@@ -235,12 +256,17 @@ func (m *usageMeter) seeJSON(raw []byte) {
 	}
 }
 
-// noteUsage keeps one relayed request; ok false for one that failed.
-func noteUsage(c *call, m *usageMeter, ok bool) {
+// noteUsage keeps one relayed request; err non-nil for one that failed.
+func noteUsage(c *call, m *usageMeter, err error) {
 	if c == nil || c.req.AuthID == "" {
 		return
 	}
+	if err == nil && m != nil && m.errMsg != "" {
+		err = errors.New(m.errMsg)
+	}
+	ok := err == nil
 	now := time.Now()
+	noteRequest(c, m, err, now)
 	k := usageKey{T: now.Truncate(time.Hour).Unix(), Acct: c.req.AuthID, Build: buildOf(c.site), Model: c.model}
 	b := usageBucket{N: 1, LastAt: now.UnixMilli()}
 	if !ok {
@@ -415,4 +441,113 @@ func clearUsage() {
 	usage.b = map[usageKey]*usageBucket{}
 	usage.dirty = true
 	saveUsageLocked()
+}
+
+// ---- the request log ---------------------------------------------------------------
+
+// The last requests, numbers and names only (never a prompt or an answer),
+// kept in memory for the page's log.
+const reqLogSize = 300
+
+type reqEntry struct {
+	At      int64   `json:"at"`
+	Account string  `json:"account"`
+	Build   string  `json:"build"`
+	Model   string  `json:"model"`
+	Stream  bool    `json:"stream"`
+	OK      bool    `json:"ok"`
+	Status  int     `json:"status,omitempty"`
+	Code    string  `json:"code,omitempty"`
+	Error   string  `json:"error,omitempty"`
+	PT      int64   `json:"pt,omitempty"`
+	CT      int64   `json:"ct,omitempty"`
+	Cache   int64   `json:"cache,omitempty"`
+	Credit  float64 `json:"credit,omitempty"`
+	HasCr   bool    `json:"has_credit,omitempty"`
+	MS      int64   `json:"ms"`
+	TTFB    int64   `json:"ttfb_ms,omitempty"`
+	Format  string  `json:"format,omitempty"`
+	IP      string  `json:"ip,omitempty"`
+	UA      string  `json:"ua,omitempty"`
+}
+
+var reqLog = struct {
+	sync.Mutex
+	ring []reqEntry
+	next int
+	full bool
+}{}
+
+func clientIP(h http.Header) string {
+	for _, k := range []string{"X-Forwarded-For", "X-Real-Ip", "Cf-Connecting-Ip"} {
+		if v := strings.TrimSpace(h.Get(k)); v != "" {
+			if i := strings.IndexByte(v, ','); i >= 0 {
+				v = v[:i]
+			}
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
+func clip(s string, n int) string {
+	if r := []rune(s); len(r) > n {
+		return string(r[:n]) + "…"
+	}
+	return s
+}
+
+func noteRequest(c *call, m *usageMeter, err error, now time.Time) {
+	e := reqEntry{At: now.UnixMilli(), Account: c.req.AuthID, Build: buildOf(c.site), Model: c.model, Stream: c.req.Stream, OK: err == nil, Format: string(c.in)}
+	if c.req.Headers != nil {
+		e.IP = clientIP(c.req.Headers)
+		e.UA = clip(c.req.Headers.Get("User-Agent"), 120)
+	}
+	if err != nil {
+		e.Error = clip(err.Error(), 300)
+		var f *Failure
+		if errors.As(err, &f) && f.E != nil {
+			e.Status, e.Code = f.E.HTTPStatus, f.E.Code
+		}
+	}
+	if m != nil {
+		e.PT, e.CT, e.Cache = m.pt, m.ct, m.ch
+		e.Credit, e.HasCr = m.credit, m.hasCredit
+		e.MS = now.Sub(m.start).Milliseconds()
+		if !m.first.IsZero() {
+			e.TTFB = m.first.Sub(m.start).Milliseconds()
+		}
+	}
+	reqLog.Lock()
+	if reqLog.ring == nil {
+		reqLog.ring = make([]reqEntry, reqLogSize)
+	}
+	reqLog.ring[reqLog.next] = e
+	reqLog.next = (reqLog.next + 1) % reqLogSize
+	if reqLog.next == 0 {
+		reqLog.full = true
+	}
+	reqLog.Unlock()
+}
+
+// recentRequests is the log, newest first.
+func recentRequests(limit int, failedOnly bool) []reqEntry {
+	reqLog.Lock()
+	defer reqLog.Unlock()
+	n := reqLog.next
+	if reqLog.full {
+		n = reqLogSize
+	}
+	out := make([]reqEntry, 0, n)
+	for i := 0; i < n; i++ {
+		e := reqLog.ring[(reqLog.next-1-i+reqLogSize)%reqLogSize]
+		if failedOnly && e.OK {
+			continue
+		}
+		out = append(out, e)
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+	}
+	return out
 }

@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"strings"
+	"time"
 	"sync/atomic"
 
 	"gopkg.in/yaml.v3"
@@ -14,7 +15,7 @@ import (
 const ID = "workbuddy-magpie"
 
 // Version is this build's version.
-var Version = "0.2.3"
+var Version = "0.2.4"
 
 // Tasks are the background benefit jobs ported from workbuddy2api-hub, each
 // off until switched on.
@@ -68,6 +69,15 @@ type Config struct {
 	// of the model list CPA is given and refused before anything is sent.
 	DisabledCN []string `yaml:"disabled_models_cn" json:"disabled_models_cn"`
 	DisabledAI []string `yaml:"disabled_models_ai" json:"disabled_models_ai"`
+	// CacheKey gives completions a per-account, per-conversation
+	// prompt_cache_key; on unless set false.
+	CacheKey *bool `yaml:"prompt_cache_key" json:"prompt_cache_key"`
+	// ToolRepair turns DeepSeek's tool-call markup, when it leaks into the
+	// text, back into tool_calls; on unless set false.
+	ToolRepair *bool `yaml:"tool_markup_repair" json:"tool_markup_repair"`
+	// CreditsRefresh is how often, in minutes, every account's credits are
+	// read in the background (10 unless set; 0 turns it off).
+	CreditsRefresh *int `yaml:"credits_refresh_minutes" json:"credits_refresh_minutes"`
 	// Checkin is the China build's daily check-in (Buddy 加油站签到, the
 	// billing meter's daily-checkin), once a Beijing day. Off unless on, as
 	// magpie's switch.
@@ -87,6 +97,23 @@ type Config struct {
 }
 
 func (c *Config) hideDsh() bool { return c.HideDsh == nil || *c.HideDsh }
+
+func (c *Config) cacheKey() bool { return c.CacheKey == nil || *c.CacheKey }
+
+func (c *Config) toolRepair() bool { return c.ToolRepair == nil || *c.ToolRepair }
+
+func (c *Config) creditsRefresh() time.Duration {
+	if c.CreditsRefresh == nil {
+		return 10 * time.Minute
+	}
+	if *c.CreditsRefresh <= 0 {
+		return 0
+	}
+	if *c.CreditsRefresh < 5 {
+		return 5 * time.Minute
+	}
+	return time.Duration(*c.CreditsRefresh) * time.Minute
+}
 
 func (c *Config) claim() bool { return c.Tasks.Claim == nil || *c.Tasks.Claim }
 

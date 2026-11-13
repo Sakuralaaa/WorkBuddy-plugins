@@ -29,6 +29,10 @@ type Options struct {
 	HideDsh  bool
 	// Disabled model ids are refused before anything is sent.
 	Disabled map[string]bool
+	// CacheKey gives each completion a prompt_cache_key of its own account
+	// and conversation, so a conversation's prefix is read from WorkBuddy's
+	// cache instead of being charged again.
+	CacheKey bool
 }
 
 // Channel is one build's state for a run (magpie's makePlugin closure).
@@ -400,6 +404,10 @@ func (c *Channel) Fetch(ctx context.Context, d Doer, req *ChatRequest) (*ChatRes
 	ChatHeaders(site, headers)
 	who := ScopeOf(a)
 	ids := Attend(headers, chat, sessionLimit(req.Session), who)
+	if opts.CacheKey && completion && chat != nil && !chat.Has("prompt_cache_key") {
+		chat.Set("prompt_cache_key", CacheKeyOf(a, headers.Get("X-Conversation-ID")))
+		changed = true
+	}
 	grownFor := ""
 	hadVars := chat != nil && chat.Has("extra_vars")
 	if completion && WithGrowth(site, chat, headers.Get("X-Conversation-ID"), "") {
