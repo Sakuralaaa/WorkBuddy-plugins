@@ -41,6 +41,7 @@ var routes = []route{
 	{"GET", base + "models", "WorkBuddy: live model list of a build (?build=cn|ai&account=)"},
 	{"GET", base + "tasks", "WorkBuddy: an account's task center (?account=)"},
 	{"POST", base + "keys/check", "WorkBuddy: check an API key with WorkBuddy before it is saved"},
+	{"POST", base + "accounts/note", "WorkBuddy: set or clear an account's note ({account, note})"},
 	{"GET", base + "credits/history", "WorkBuddy: credits left over time (?hours=&account=)"},
 	{"GET", base + "requests", "WorkBuddy: the last requests relayed, numbers only (?limit=&failed=1)"},
 	{"GET", base + "usage", "WorkBuddy: requests, tokens and credits relayed (?hours=&account=)"},
@@ -108,6 +109,8 @@ func managementHandle(raw []byte) (any, error) {
 		return handleAccounts()
 	case method == "GET" && path == base+"credits":
 		return handleCredits(d, q.Get("account"), q.Get("refresh") != "")
+	case method == "POST" && path == base+"accounts/note":
+		return handleSetNote(r.Body)
 	case method == "GET" && path == base+"credits/history":
 		h, _ := strconv.Atoi(q.Get("hours"))
 		return handleCreditHistory(h, q.Get("account"))
@@ -252,6 +255,7 @@ type accountView struct {
 	Build          string   `json:"build"`
 	Provider       string   `json:"provider"`
 	Name           string   `json:"name"`
+	Note           string   `json:"note,omitempty"`
 	UID            string   `json:"uid,omitempty"`
 	Enterprise     string   `json:"enterprise,omitempty"`
 	Plan           string   `json:"plan,omitempty"`
@@ -288,6 +292,7 @@ func viewOf(x acct) accountView {
 		}
 	}
 	v.Jobs = lastRuns(x.ID)
+	v.Note = noteOf(x.ID)
 	return v
 }
 

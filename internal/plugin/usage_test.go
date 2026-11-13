@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -42,5 +43,15 @@ func TestRollup(t *testing.T) {
 	usage.Unlock()
 	if n != 3 || tt != 15 {
 		t.Fatalf("rolled = %d requests %d tokens", n, tt)
+	}
+}
+
+func TestCleanNote(t *testing.T) {
+	if got := cleanNote("  主力号\n "); got != "主力号" {
+		t.Fatalf("got %q", got)
+	}
+	long := strings.Repeat("备", 60)
+	if got := cleanNote(long); len([]rune(got)) != noteMaxRunes {
+		t.Fatalf("len %d", len([]rune(got)))
 	}
 }

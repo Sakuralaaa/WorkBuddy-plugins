@@ -6,28 +6,28 @@
 <title>WorkBuddy</title>
 <style>
 :root{
-  --bg:#f3f6fb;--bg2:#eaf0f8;--card:#ffffff;--text:#1f2a37;--sub:#5b6676;--faint:#8a94a3;
-  --line:#e6ebf2;--line2:#d5dce7;--soft:#f5f8fc;--hover:#edf2f9;
-  --pri:#3b82f6;--pri-soft:#e8f0fe;--pri-text:#2563eb;--on-pri:#ffffff;
-  --acc:#3b82f6;--acc-soft:#e8f0fe;--acc-text:#2563eb;
-  --ok:#10b981;--ok-soft:#e3f7ef;--warn:#d97706;--warn-soft:#fdf3e1;
-  --bad:#e5793a;--bad-soft:#fdeee4;--ai:#0e9fb3;--ai-soft:#e2f5f8;
-  --bar-c:#14b886;--line-c:#3b82f6;
-  --radius:14px;--radius-sm:8px;
-  --shadow:0 1px 3px rgba(31,42,55,.05);
-  --shadow-lg:0 12px 32px -10px rgba(31,42,55,.2),0 4px 10px -4px rgba(31,42,55,.08);
-  --ring:0 0 0 3px rgba(59,130,246,.2);
+  --bg:#f6f6f5;--bg2:#efeff0;--card:#ffffff;--text:#1d1e20;--sub:#5c5f66;--faint:#8d9097;
+  --line:#e4e5e8;--line2:#d4d6da;--soft:#f2f2f3;--hover:#ebecee;
+  --pri:#1d1e20;--pri-soft:#ebecee;--pri-text:#1d1e20;--on-pri:#ffffff;
+  --acc:#4a6484;--acc-soft:#e8edf3;--acc-text:#3d5675;
+  --ok:#4a6484;--ok-soft:#e8edf3;--warn:#9a6a1f;--warn-soft:#f4eee2;
+  --bad:#a35f16;--bad-soft:#f6ece0;--ai:#7b7f88;--ai-soft:#eeeff1;
+  --u-p:#3d5bd9;--u-c:#12985f;--u-m:#b7791f;--u-l:#a9b4ef;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 1px 2px rgba(29,30,32,.05);
+  --shadow-lg:0 12px 32px -10px rgba(29,30,32,.22),0 4px 10px -4px rgba(29,30,32,.08);
+  --ring:0 0 0 3px rgba(74,100,132,.18);
 }
 html[data-theme=dark]{
-  --bg:#0f141b;--bg2:#141a22;--card:#18202a;--text:#e6ebf2;--sub:#9aa6b6;--faint:#6f7b8b;
-  --line:#253040;--line2:#2f3b4d;--soft:#1c2531;--hover:#212b38;
-  --pri:#4f8ff7;--pri-soft:#1c2a40;--pri-text:#7aaaf9;--on-pri:#ffffff;
-  --acc:#4f8ff7;--acc-soft:#1c2a40;--acc-text:#7aaaf9;
-  --ok:#2cc995;--ok-soft:#173129;--warn:#f0a43a;--warn-soft:#30261a;
-  --bad:#f08a4b;--bad-soft:#33231a;--ai:#3cc0d2;--ai-soft:#16303a;
-  --bar-c:#22c58f;--line-c:#5b9bf8;
-  --shadow:0 0 0 1px rgba(255,255,255,.02);--shadow-lg:0 16px 40px -10px rgba(0,0,0,.6);
-  --ring:0 0 0 3px rgba(79,143,247,.3);
+  --bg:#121315;--bg2:#17181a;--card:#1b1c1f;--text:#e8e9eb;--sub:#a2a5ab;--faint:#74777e;
+  --line:#2a2b2f;--line2:#35373b;--soft:#212225;--hover:#26272a;
+  --pri:#e8e9eb;--pri-soft:#2a2b2f;--pri-text:#e8e9eb;--on-pri:#121315;
+  --acc:#8fa8c6;--acc-soft:#1f2630;--acc-text:#a9bdd6;
+  --ok:#8fa8c6;--ok-soft:#1f2630;--warn:#d1a35c;--warn-soft:#2a2418;
+  --bad:#d49456;--bad-soft:#2c2219;--ai:#a2a5ab;--ai-soft:#26272a;
+  --u-p:#6d86f0;--u-c:#2fbf84;--u-m:#d6a14a;--u-l:#4c5891;
+  --shadow:0 0 0 1px rgba(255,255,255,.015);--shadow-lg:0 16px 40px -10px rgba(0,0,0,.6);
+  --ring:0 0 0 3px rgba(143,168,198,.25);
 }
 *{box-sizing:border-box}
 html{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
@@ -119,6 +119,7 @@ td .toggle{display:block}
 td input+span,td input+.small{margin-left:8px}
 div[style*="overflow:auto"]{border:1px solid var(--line);border-radius:var(--radius-sm)}
 .muted{color:var(--sub)}.small{font-size:12px}
+.iconbtn{border:0;background:none;color:var(--faint);cursor:pointer;font-size:13px;padding:0 4px;border-radius:4px}.iconbtn:hover{color:var(--text);background:var(--hover)}
 .mono{font-family:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;font-size:12px}
 
 /* forms */
@@ -195,22 +196,28 @@ details pre,pre#testOut:not(:empty){white-space:pre-wrap;word-break:break-all;ba
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line2);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-#usageStats{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
-#usageStats .stat .v{font-size:22px}
 th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
-.combo{position:relative;width:100%;overflow:hidden}
-.combo svg{display:block}
-.combo .gl{stroke:var(--line);stroke-dasharray:4 4}
-.combo .ax{font-size:11px;fill:var(--faint)}
-.combo .ax2{fill:var(--line-c)}
-.combo .cbar{fill:var(--bar-c)}
-.combo .ln{fill:none;stroke:var(--line-c);stroke-width:2.2;stroke-linejoin:round}
-.combo .area{fill:var(--line-c);opacity:.06}
-.combo .pt{fill:var(--line-c);stroke:var(--card);stroke-width:1.5}
-.combo .pt.bad{fill:var(--bad)}
-.combo .guide{stroke:var(--line2);stroke-dasharray:3 3}
-.combo .tip{position:absolute;pointer-events:none;background:var(--card);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-lg);font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;white-space:nowrap;z-index:5;transform:translate(-50%,-115%)}
-.legend{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:400;color:var(--sub)}
+.ustats{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));margin-bottom:16px}
+.ustat{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:10px;padding:12px 14px;min-width:0}
+.ustat .k{font-size:12.5px;color:var(--sub)}
+.ustat .v{font:600 22px/1.25 ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;margin:4px 0 6px;letter-spacing:-.02em;color:var(--text)}
+.ustat .s{font-size:12px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ustat .split{display:flex;height:4px;border-radius:2px;overflow:hidden;margin:-2px 0 6px;background:var(--soft)}
+.ucard{padding:0;overflow:hidden}
+.uhead{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.uhead .usum{font-size:13px;color:var(--text)}
+.ubars{position:relative;width:100%;padding:8px 0 4px;overflow:hidden;background:color-mix(in srgb,var(--soft) 55%,var(--card))}
+.ubars svg{display:block}
+.ubars .gl{stroke:var(--line);stroke-dasharray:3 4}
+.ubars .ax{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--faint)}
+.ubars .mean{stroke:var(--u-m);stroke-dasharray:5 4;stroke-width:1.2;opacity:.8}
+.ubars .ml{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--u-m)}
+.ubars .pk{font:600 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--sub)}
+.ubars .guide{stroke:var(--line2);stroke-dasharray:3 3}
+.ubars .tip{position:absolute;pointer-events:none;background:var(--card);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-lg);font-size:12px;line-height:1.6;padding:8px 12px;border-radius:8px;white-space:nowrap;z-index:5;transform:translate(-50%,-115%)}
+.legend .sq{width:10px;height:10px;border-radius:2px;display:inline-block;margin-left:8px}
+.legend .sep{width:1px;height:12px;background:var(--line2);margin-left:10px}
+.legend{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:400;color:var(--sub)}
 .legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin:0 -1px 0 10px}
 .chart{position:relative;height:200px;display:flex;align-items:flex-end;gap:5px;padding:8px 0 22px;border-bottom:1px solid var(--line)}
 .chart .col{flex:1;min-width:2px;position:relative;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
@@ -225,7 +232,7 @@ th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
 .daybar .r{text-align:right;font-variant-numeric:tabular-nums}
 .daybar.soon .bar i{background:var(--warn)}.daybar.urgent .bar i{background:var(--bad)}
 .mix{display:flex;height:6px;border-radius:4px;overflow:hidden;background:var(--soft);min-width:80px;margin-top:4px}
-.mix i{display:block;height:100%}.mix i.p{background:var(--acc)}.mix i.c{background:var(--ai)}
+.mix i{display:block;height:100%}.mix i.p{background:var(--u-p)}.mix i.c{background:var(--u-c)}
 
 .lchart{position:relative}
 .lchart svg{display:block;width:100%;height:220px;overflow:visible}
@@ -343,11 +350,10 @@ td.src{max-width:260px;font-size:12px;color:var(--sub);overflow:hidden;text-over
       <span class="spacer"></span>
       <button class="btn" onclick="loadUsage()">刷新</button><button class="btn bad" onclick="clearUsageAll()">清空</button>
     </div>
-    <div class="stats" id="usageStats"></div>
-    <div class="card"><h2>趋势 <span class="muted small" id="usageStep" style="font-weight:400"></span><span class="spacer"></span>
-      <span class="legend"><i class="dot" style="background:var(--line-c)"></i>调用 <i class="dot" style="background:var(--bar-c)"></i><span id="usageBarName">Token</span></span>
-      <div class="tabs2" id="usageMetric" style="margin:0 0 0 12px"><button data-k="tt" class="on">Token</button><button data-k="cr">积分</button></div></h2>
-      <div id="usageChart" class="combo"></div></div>
+    <div class="ustats" id="usageStats"></div>
+    <div class="card ucard"><div class="uhead"><b id="uTitle">Token 时序</b><span class="usum" id="uSum"></span><span id="uLegend" class="legend"></span><span class="spacer"></span>
+      <div class="tabs2" id="usageMetric" style="margin:0"><button data-k="tt" class="on">Token</button><button data-k="cr">积分</button><button data-k="n">请求</button></div></div>
+      <div id="usageChart" class="ubars"></div></div>
     <div class="card"><h2>明细 <span class="spacer"></span>
       <div class="tabs2" id="usageDim" style="margin:0"><button data-d="by_account" class="on">按账号</button><button data-d="by_model">按模型</button></div></h2>
       <div style="overflow:auto"><table><thead id="usageHead"></thead><tbody id="usageRows"></tbody></table></div>
@@ -593,7 +599,18 @@ const pl=(m,p,b)=>req(m,MG+'/'+PID+'/'+p,b);
 // ---- helpers ----
 // Buttons built from data carry their arguments as JSON in data-args and are
 // dispatched here, so names with quotes can never break out into script.
-const ACTS={refreshTok:(...a)=>refreshTok(...a),showCredits:(...a)=>showCredits(...a),showTasks:(...a)=>showTasks(...a),toggleAcct:(...a)=>toggleAcct(...a),delAcct:(...a)=>delAcct(...a),runJob:(...a)=>runJob(...a)};
+// ---- account notes ----
+async function ensureAccounts(){if(!S.accounts.length){try{S.accounts=(await pl('GET','accounts')).accounts||[]}catch(e){}}}
+function noteOf(id){const a=(S.accounts||[]).find(x=>x.id===id);return a&&a.note||''}
+// the name to show: the note when there is one, else the account name
+function acctLabel(id,name){const n=noteOf(id);return n||name||id}
+// note in bold with the account name beside it, for cards and tables
+function acctHTML(id,name){const n=noteOf(id);return n?`<b>${esc(n)}</b> <span class="muted small">${esc(name||id)}</span>`:`<b>${esc(name||id)}</b>`}
+async function editNote(id,name){
+  const cur=noteOf(id);const v=prompt('给 '+(name||id)+' 写个备注（最多 40 字，留空删除）',cur);if(v===null)return;
+  try{const r=await pl('POST','accounts/note',{account:id,note:v});const a=S.accounts.find(x=>x.id===id);if(a)a.note=r.note||'';toast(r.note?'备注已保存':'备注已删除');renderAccounts()}catch(e){toast(e.message,true)}
+}
+const ACTS={editNote:(...a)=>editNote(...a),refreshTok:(...a)=>refreshTok(...a),showCredits:(...a)=>showCredits(...a),showTasks:(...a)=>showTasks(...a),toggleAcct:(...a)=>toggleAcct(...a),delAcct:(...a)=>delAcct(...a),runJob:(...a)=>runJob(...a)};
 function A(...args){return esc(JSON.stringify(args))}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const f=ACTS[b.dataset.act];if(!f)return;let args=[];try{args=JSON.parse(b.dataset.args||'[]')}catch(err){}f(...args)});
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -641,7 +658,7 @@ function renderAccounts(){
     const last=(a.last||[]).slice(0,4).map(r=>`<div class="small">${esc(jobName(r.job))}${r.task?' · '+esc(r.task):''}：${outcomeBadge(r.outcome)} <span class="muted">${esc(fmtTime(r.at))}</span></div>`).join('');
     return `<div class="acct">
       <div class="row">${buildBadge(a.build)} ${st} ${a.source==='key'?'<span class="badge">API Key</span>':''}${a.pending?'<span class="badge warn">待完成导入</span>':''}</div>
-      <div class="name" style="margin-top:6px">${esc(a.name)}</div>
+      <div class="name" style="margin-top:6px">${acctHTML(a.id,a.name)} <button class="iconbtn" title="编辑备注" data-act="editNote" data-args="${A(a.id,a.name)}">✎</button></div>
       <div class="kv">
         <span>UID</span><span class="mono">${esc(a.uid||'—')}</span>
         <span>企业</span><span>${esc(a.enterprise||'个人')}</span>
@@ -737,6 +754,7 @@ async function importTok(){
 
 // ---- credits ----
 async function loadCredits(force){
+  await ensureAccounts();
   const box=document.getElementById('creditList');
   if(!box.children.length||box.querySelector('.empty,.note'))box.innerHTML='<div class="empty"><span class="spin"></span> 正在读取积分…</div>';
   const asOf=document.getElementById('creditAsOf');if(asOf)asOf.innerHTML=force?'<span class="spin"></span> 正在向 WorkBuddy 重新读取…':'';
@@ -755,7 +773,7 @@ async function loadCredits(force){
         <div class="small muted" style="min-height:19px">${w.resetsAt?'重置 '+esc(fmtTime(w.resetsAt)):''}${w.runsOutAt?' · 到期 '+esc(fmtTime(w.runsOutAt))+(w.runsOut?'（'+fmtNum(w.runsOut)+' 积分）':''):''}${w.models&&w.models.length?' · 仅限 '+esc(w.models.join(', ')):''}</div></div>`}).join('');
       const pks=c.error?'':`<details class="pkgs" data-acct="${esc(c.account)}"><summary>积分包明细</summary><div class="pkgBody small muted" style="margin-top:6px"></div></details>`;
       return `<div class="acct"><div class="row">${buildBadge(c.build)} <span class="badge">${esc(u.plan||'—')}</span><span class="spacer"></span>${c.left!=null?`<b>${fmtNum(c.left)}</b><span class="muted small">剩余</span>`:''}</div>
-        <div class="name" style="margin:6px 0">${esc(c.name)}</div>
+        <div class="name" style="margin:6px 0">${acctHTML(c.account,c.name)}</div>
         ${c.error?`<div class="note bad">${esc(c.error)}</div>`:''}${wins||(!c.error?'<div class="muted small">没有额度信息</div>':'')}${pks}</div>`}).join('');
     S.pkgForce=force===true;
     box.querySelectorAll('details.pkgs').forEach(d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.loaded)loadPkgs(d)}));
@@ -775,6 +793,7 @@ async function loadPkgs(d){
 
 // ---- composition ----
 async function loadComposition(force){
+  await ensureAccounts();
   const days=document.getElementById('pkgDays'),rows=document.getElementById('pkgRows'),asOf=document.getElementById('pkgAsOf');
   days.innerHTML='<div class="empty"><span class="spin"></span> 正在读取所有账号的积分包…</div>';rows.innerHTML='';
   try{
@@ -790,7 +809,7 @@ async function loadComposition(force){
       :'<div class="empty">没有会到期的积分</div>';
     const accts=r.accounts||[];
     rows.innerHTML=accts.map(a=>{const pk=(a.packages||[]).filter(p=>p.size>0);
-      const head=`<td rowspan="${Math.max(1,pk.length)}" style="vertical-align:top">${buildBadge(a.build)}<div style="margin-top:4px"><b>${esc(a.name)}</b></div><div class="small muted">${fmtNum(a.remain)} / ${fmtNum(a.size)}</div></td>`;
+      const head=`<td rowspan="${Math.max(1,pk.length)}" style="vertical-align:top">${buildBadge(a.build)}<div style="margin-top:4px">${acctHTML(a.account,a.name)}</div><div class="small muted">${fmtNum(a.remain)} / ${fmtNum(a.size)}</div></td>`;
       if(a.error)return `<tr>${head}<td colspan="3"><span class="badge bad">读取失败</span> <span class="small muted">${esc(a.error)}</span></td></tr>`;
       if(!pk.length)return `<tr>${head}<td colspan="3" class="muted small">没有积分包</td></tr>`;
       return pk.map((p,i)=>`<tr>${i?'':head}<td>${esc(p.name)}${p.reason?'<div class="small muted">'+esc(p.reason)+'</div>':''}</td><td class="num">${fmtNum(p.remain)} / ${fmtNum(p.size)}</td><td class="small">${p.expire_at?esc(fmtTime(p.expire_at))+' <span class="muted">'+rel(p.expire_at)+'</span>':'<span class="muted">不过期</span>'}</td></tr>`).join('')}).join('')||'<tr><td colspan="4" class="empty">没有账号</td></tr>';
@@ -806,60 +825,74 @@ document.getElementById('usageAcct').onchange=()=>loadUsage();
 function fmtMs(ms){if(!ms)return '—';return ms>=1000?(ms/1000).toFixed(1)+' s':Math.round(ms)+' ms'}
 function pct(x){return x==null||isNaN(x)?'—':(Math.round(x*10)/10)+'%'}
 async function loadUsage(){
+  await ensureAccounts();
   const sel=document.getElementById('usageAcct');
-  if(sel.options.length<=1){try{if(!S.accounts.length)S.accounts=(await pl('GET','accounts')).accounts||[];sel.innerHTML+=S.accounts.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(a.name)}</option>`).join('')}catch(e){}}
+  if(sel.options.length<=1){try{if(!S.accounts.length)S.accounts=(await pl('GET','accounts')).accounts||[];sel.innerHTML+=S.accounts.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(acctLabel(a.id,a.name))}</option>`).join('')}catch(e){}}
   document.getElementById('usageRows').innerHTML='<tr><td class="empty" colspan="9"><span class="spin"></span></td></tr>';
   try{S.usage=await pl('GET','usage?hours='+S.usageH+(sel.value?'&account='+encodeURIComponent(sel.value):''));drawUsage()}
   catch(e){document.getElementById('usageRows').innerHTML=`<tr><td colspan="9"><div class="note bad" style="margin:0">${esc(e.message)}</div></td></tr>`}
 }
 function drawUsage(){
   const u=S.usage;if(!u)return;const t=u.total||{};
-  document.getElementById('usageStats').innerHTML=[['请求数',fmtNum(t.n)],['成功率',t.n?pct(t.success_rate):'—'],['Token',fmtNum(t.tt)],['实扣积分',fmtNum(t.cr)],['每百万 Token 积分',t.crt?fmtNum(t.credits_per_1m):'—'],['缓存命中',t.pt?pct(t.cache_rate):'—'],['平均耗时',fmtMs(t.avg_ms)]].map(x=>`<div class="stat"><div class="k">${x[0]}</div><div class="v">${x[1]}</div></div>`).join('');
-  document.getElementById('usageStep').textContent=u.step==='day'?'按天':'按小时';
-  // chart: fill empty slots
+  const tp=(t.pt||0)+(t.ct||0),pp=tp?(t.pt||0)/tp*100:0,cp=tp?100-pp:0,sec=(t.ms||0)/1000,tps=sec&&t.ct?t.ct/sec:0;
+  const card=(c,k,v,sub,extra='')=>`<div class="ustat" style="--c:${c}"><div class="k">${k}</div><div class="v">${v}</div>${extra}<div class="s">${sub}</div></div>`;
+  document.getElementById('usageStats').innerHTML=[
+    card('var(--u-p)','请求数',`<span style="color:var(--u-p)">${fmtNum(t.n||0)}</span>`,`其中失败 ${t.f||0} 次`),
+    card('var(--u-p)','总 Token',`<span style="color:var(--u-p)">${kfmt(t.tt||0)}</span>`,tp?`${pp.toFixed(0)}% / ${cp.toFixed(0)}%`:'—',tp?`<div class="split"><i style="width:${pp}%;background:var(--u-p)"></i><i style="width:${cp}%;background:var(--u-c)"></i></div>`:''),
+    card('var(--u-l)','prompt',kfmt(t.pt||0),tp?`占比 ${pp.toFixed(1)}%`:'—'),
+    card('var(--u-c)','completion',`<span style="color:var(--u-c)">${kfmt(t.ct||0)}</span>`,tp?`占比 ${cp.toFixed(1)}%`:'—'),
+    card('var(--u-l)','实扣积分',fmtNum(t.cr||0),t.crt?`每百万 ${fmtNum(t.credits_per_1m)}`:'—'),
+    card('var(--u-l)','缓存命中',t.pt?pct(t.cache_rate):'—',`首字 ${fmtMs(t.avg_ttfb_ms)}`),
+    card('var(--u-m)','失败尝试',`<span style="color:var(--u-m)">${t.f||0}</span>`,t.n?`成功率 ${pct(t.success_rate)}`:'—'),
+    card('var(--u-l)','平均延迟',t.avg_ms?(t.avg_ms/1000).toFixed(2)+'s':'—',tps?`吐字 ${tps.toFixed(1)} tok/s`:`首字 ${fmtMs(t.avg_ttfb_ms)}`)].join('');
+    // chart: fill empty slots
   const step=u.step==='day'?86400e3:3600e3,k=S.usageMetric;const pts={};(u.series||[]).forEach(p=>pts[p.t]=p);
   const off=8*3600e3;const align=ms=>u.step==='day'?Math.floor((ms+off)/step)*step-off:Math.floor(ms/step)*step;
   const cols=[];for(let x=align(u.from)+step;x<=align(u.to);x+=step)cols.push(pts[x]||{t:x,n:0,f:0,tt:0,cr:0});
-  document.getElementById('usageBarName').textContent=k==='cr'?'积分':'Token';
-  drawCombo(document.getElementById('usageChart'),cols,k,u.step);
+  drawBars(document.getElementById('usageChart'),cols,k,u.step);
   const byA=S.usageDim==='by_account';const list=u[S.usageDim]||[];
   document.getElementById('usageHead').innerHTML=`<tr><th>${byA?'账号':'模型'}</th><th class="num">请求</th><th class="num">成功率</th><th class="num">输入 / 输出</th><th class="num">缓存命中</th><th class="num">实扣积分</th><th class="num">每百万 Token</th><th class="num">平均耗时</th><th class="num">首字</th></tr>`;
   document.getElementById('usageRows').innerHTML=list.length?list.map(r=>{const tot=(r.pt||0)+(r.ct||0);
-    return `<tr><td>${buildBadge(r.build)} ${byA?'<b>'+esc(r.name||r.key)+'</b>':'<span class="mono">'+esc(r.key)+'</span>'}<div class="small muted">最近 ${r.la?rel(r.la):'—'}</div></td>
+    return `<tr><td>${buildBadge(r.build)} ${byA?acctHTML(r.key,r.name):'<span class="mono">'+esc(r.key)+'</span>'}<div class="small muted">最近 ${r.la?rel(r.la):'—'}</div></td>
     <td class="num">${fmtNum(r.n)}${r.f?'<div class="small" style="color:var(--bad)">失败 '+r.f+'</div>':''}</td><td class="num">${pct(r.success_rate)}</td>
     <td class="num">${fmtNum(r.pt)} / ${fmtNum(r.ct)}${tot?`<div class="mix" style="margin-left:auto;max-width:120px"><i class="p" style="width:${(r.pt||0)/tot*100}%"></i><i class="c" style="width:${(r.ct||0)/tot*100}%"></i></div>`:''}</td>
     <td class="num">${r.pt?pct(r.cache_rate):'—'}</td><td class="num">${r.crn?fmtNum(r.cr):'—'}</td><td class="num">${r.crt?fmtNum(r.credits_per_1m):'—'}</td><td class="num">${fmtMs(r.avg_ms)}</td><td class="num">${fmtMs(r.avg_ttfb_ms)}</td></tr>`}).join('')
     :'<tr><td colspan="9" class="empty">这段时间没有经过插件的请求</td></tr>';
 }
-// bars (token or credits, left axis) + smooth line (calls, right axis)
+// stacked bars (prompt + completion) or a single series, with mean line and peak label
 function niceStep(top,n){if(top<=0)return 1;const raw=top/n,mag=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,2.5,5,10].map(m=>m*mag).find(st=>st>=raw)}
-function kfmt(v){return v>=1e6?(+(v/1e6).toFixed(1))+'M':v>=1e3?(+(v/1e3).toFixed(1))+'K':String(+(+v).toFixed(2))}
-function drawCombo(el,cols,k,stepKind){
-  const W=Math.max(320,el.clientWidth||900),H=260,L=52,R=40,T=14,B=30,iw=W-L-R,ih=H-T-B,n=cols.length||1;
-  const bv=p=>k==='cr'?(p.cr||0):(p.tt||0);
-  const N=5,bs=niceStep(Math.max(...cols.map(bv),0),N)||1,ls=Math.max(1,Math.ceil(niceStep(Math.max(...cols.map(p=>p.n||0),0),N)||1));
-  const bmax=bs*N,lmax=ls*N,cw=iw/n,bw=Math.max(2,Math.min(22,cw*.42));
-  const x=i=>L+cw*i+cw/2,yb=v=>T+ih-v/bmax*ih,yl=v=>T+ih-v/lmax*ih;
+function kfmt(v){v=+v||0;return v>=1e6?(+(v/1e6).toFixed(1))+'M':v>=1e3?(v/1e3).toFixed(1)+'k':String(+v.toFixed(2))}
+function drawBars(el,cols,k,stepKind){
+  const W=Math.max(320,el.clientWidth||900),H=250,L=56,R=20,T=26,B=28,iw=W-L-R,ih=H-T-B,n=cols.length||1;
+  const tok=k==='tt',val=p=>k==='cr'?(p.cr||0):k==='n'?(p.n||0):((p.pt||0)+(p.ct||0))||(p.tt||0);
   const p2=v=>String(v).padStart(2,'0'),lab=ms=>{const d=new Date(ms);return stepKind==='day'?p2(d.getMonth()+1)+'-'+p2(d.getDate()):p2(d.getHours())+':00'};
-  const every=Math.ceil(n/Math.max(4,Math.floor(iw/70)));
-  let g='';
-  for(let i=0;i<=N;i++){const y=T+ih-ih*i/N;g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" class="gl"${i?'':' style="stroke-dasharray:none"'}/>`+
-    `<text x="${L-8}" y="${y+4}" text-anchor="end" class="ax">${kfmt(bs*i)}</text><text x="${W-R+8}" y="${y+4}" class="ax ax2">${ls*i}</text>`}
-  cols.forEach((p,i)=>{const v=bv(p);if(v>0){const y=yb(v);g+=`<rect x="${x(i)-bw/2}" y="${y}" width="${bw}" height="${T+ih-y}" rx="3" class="cbar"/>`}
+  const vals=cols.map(val),nz=vals.filter(v=>v>0),peak=Math.max(0,...vals),pi=vals.indexOf(peak),mean=nz.length?nz.reduce((a,b)=>a+b,0)/nz.length:0;
+  const fmtV=v=>k==='n'?String(Math.round(v)):kfmt(v);
+  const name=k==='cr'?'积分':k==='n'?'请求':'Token';
+  document.getElementById('uTitle').textContent=name+' 时序';
+  document.getElementById('uSum').textContent=nz.length?`${nz.length} 个点 · 峰值 ${fmtV(peak)} @ ${lab(cols[pi].t)} · 均值 ${fmtV(mean)}`:'这段时间没有请求';
+  document.getElementById('uLegend').innerHTML=(tok?'<i class="sq" style="background:var(--u-p)"></i>prompt<i class="sq" style="background:var(--u-c)"></i>completion':`<i class="sq" style="background:var(--u-p)"></i>${name}`)+'<span class="sep"></span><i class="sq" style="background:var(--u-m)"></i>均值';
+  const N=4,top=peak||1,max=top*1.0,ticks=[0,1,2,3,4].map(i=>max*i/N);
+  const cw=iw/n,bw=Math.max(2,Math.min(26,cw*.72)),x=i=>L+cw*i+cw/2,y=v=>T+ih-v/max*ih;
+  const every=Math.ceil(n/Math.max(4,Math.floor(iw/80)));
+  let g=`<defs><linearGradient id="gP" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--u-p)"/><stop offset="1" stop-color="var(--u-p)" stop-opacity=".6"/></linearGradient>
+  <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--u-c)"/><stop offset="1" stop-color="var(--u-c)" stop-opacity=".6"/></linearGradient></defs>`;
+  ticks.forEach((tv,i)=>{const yy=y(tv);g+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" class="gl"${i?'':' style="stroke-dasharray:none;stroke:var(--line2)"'}/><text x="${L-10}" y="${yy+4}" text-anchor="end" class="ax">${fmtV(tv)}</text>`});
+  cols.forEach((p,i)=>{const x0=x(i)-bw/2;
+    if(tok&&(p.pt||p.ct)){const hp=(p.pt||0)/max*ih,hc=(p.ct||0)/max*ih,base=T+ih;
+      if(hp>0)g+=`<rect x="${x0}" y="${base-hp}" width="${bw}" height="${hp}" fill="url(#gP)"/>`;
+      if(hc>0)g+=`<rect x="${x0}" y="${base-hp-hc}" width="${bw}" height="${hc}" fill="url(#gC)" rx="2"/>`;}
+    else{const v=vals[i];if(v>0){const yy=y(v);g+=`<rect x="${x0}" y="${yy}" width="${bw}" height="${T+ih-yy}" fill="url(#gP)" rx="2"/>`}}
     if(i%every===0)g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" class="ax">${lab(p.t)}</text>`});
-  const pts=cols.map((p,i)=>[x(i),yl(p.n||0)]);
-  let d='';pts.forEach((q,i)=>{if(!i){d=`M${q[0]},${q[1]}`;return}const a=pts[i-2]||pts[i-1],b0=pts[i-1],c=q,e=pts[i+1]||q;
-    let c1y=b0[1]+(c[1]-a[1])/6,c2y=c[1]-(e[1]-b0[1])/6;const lo=Math.max(b0[1],c[1]),hi=Math.min(b0[1],c[1]);c1y=Math.min(T+ih,c1y);c2y=Math.min(T+ih,c2y);
-    d+=` C${b0[0]+(c[0]-a[0])/6},${c1y} ${c[0]-(e[0]-b0[0])/6},${c2y} ${c[0]},${c[1]}`});
-  if(pts.length>1)g+=`<path d="${d} L${pts[pts.length-1][0]},${T+ih} L${pts[0][0]},${T+ih} Z" class="area"/><path d="${d}" class="ln"/>`;
-  if(n<=48)pts.forEach((q,i)=>{g+=`<circle cx="${q[0]}" cy="${q[1]}" r="3" class="pt${cols[i].f?' bad':''}"/>`});
-  g+=`<line id="cGuide" x1="0" x2="0" y1="${T}" y2="${T+ih}" class="guide" style="display:none"/>`;
+  if(mean>0){const ym=y(mean);g+=`<line x1="${L}" x2="${W-R}" y1="${ym}" y2="${ym}" class="mean"/><text x="${L+6}" y="${ym-5}" class="ml">均值 ${fmtV(mean)}</text>`}
+  if(peak>0)g+=`<text x="${x(pi)}" y="${y(peak)-7}" text-anchor="middle" class="pk">峰值 ${fmtV(peak)}</text>`;
+  g+=`<line id="uGuide" x1="0" x2="0" y1="${T}" y2="${T+ih}" class="guide" style="display:none"/>`;
   cols.forEach((p,i)=>{g+=`<rect x="${L+cw*i}" y="${T}" width="${cw}" height="${ih}" fill="transparent" data-i="${i}"/>`});
   el.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${g}</svg><div class="tip" style="display:none"></div>`;
-  const tip=el.querySelector('.tip'),guide=el.querySelector('#cGuide');
+  const tip=el.querySelector('.tip'),guide=el.querySelector('#uGuide');
   el.onmousemove=e=>{const r=e.target.closest('rect[data-i]');if(!r){tip.style.display='none';guide.style.display='none';return}
-    const i=+r.dataset.i,p=cols[i];tip.innerHTML=`<b>${esc(lab(p.t))}</b><br>调用 ${p.n||0}${p.f?' · 失败 '+p.f:''}<br>${fmtNum(p.tt||0)} token · ${fmtNum(p.cr||0)} 积分`;
-    tip.style.display='block';tip.style.left=Math.min(Math.max(x(i),80),W-80)+'px';tip.style.top=Math.max(40,yl(p.n||0))+'px';
+    const i=+r.dataset.i,p=cols[i];tip.innerHTML=`<b>${esc(lab(p.t))}</b><br>请求 ${p.n||0}${p.f?' · 失败 '+p.f:''}<br>prompt ${kfmt(p.pt||0)} · completion ${kfmt(p.ct||0)}<br>积分 ${fmtNum(p.cr||0)}`;
+    tip.style.display='block';tip.style.left=Math.min(Math.max(x(i),90),W-90)+'px';tip.style.top=Math.max(70,y(vals[i]))+'px';
     guide.setAttribute('x1',x(i));guide.setAttribute('x2',x(i));guide.style.display=''};
   el.onmouseleave=()=>{tip.style.display='none';guide.style.display='none'};
   if(!el._ro&&window.ResizeObserver){let w=W;el._ro=new ResizeObserver(()=>{if(Math.abs(el.clientWidth-w)>20){w=el.clientWidth;drawUsage()}});el._ro.observe(el)}
@@ -903,9 +936,10 @@ function drawHistory(){
 
 // ---- request log ----
 async function loadRequests(){
+  await ensureAccounts();
   const tb=document.getElementById('reqRows');
   try{const r=await pl('GET','requests?limit=300'+(document.getElementById('reqFailed').checked?'&failed=1':''));
-    const names={};(S.accounts||[]).forEach(a=>names[a.id]=a.name);
+    const names={};(S.accounts||[]).forEach(a=>names[a.id]=a.note||a.name);
     const list=r.requests||[];
     tb.innerHTML=list.length?list.map(q=>`<tr><td class="small" style="white-space:nowrap">${esc(fmtTime(q.at).slice(5))}:${String(new Date(q.at).getSeconds()).padStart(2,'0')}</td>
       <td>${buildBadge(q.build)} <span class="small">${esc(names[q.account]||q.account)}</span></td><td class="mono small">${esc(q.model)}${q.stream?' <span class="muted">流式</span>':''}</td>
@@ -988,7 +1022,7 @@ async function openTasks(){
   try{if(!S.accounts.length)await loadAccounts();else await loadStatus()}catch(e){}
   const sel=document.getElementById('taskAcct');
   const acc=S.accounts.filter(a=>a.source!=='key');
-  sel.innerHTML=acc.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(a.name)}</option>`).join('');
+  sel.innerHTML=acc.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(acctLabel(a.id,a.name))}</option>`).join('');
   if(S.taskFocus&&acc.some(a=>a.id===S.taskFocus))sel.value=S.taskFocus;
   document.getElementById('claimNote').textContent=S.status&&S.status.claim?'自动领奖：开':'自动领奖：关（只推进进度，不领取）';
   if(acc.length)loadTasks();else document.getElementById('taskBody').innerHTML='<div class="empty">没有可运行任务的账号（API Key 账号没有任务）</div>';
@@ -1084,7 +1118,7 @@ async function saveSchedule(){
 async function loadLogs(){
   try{const acct=document.getElementById('logAcct').value;const st=await pl('GET','status?limit=200'+(acct?'&account='+encodeURIComponent(acct):''));S.status=st;
     if(!S.accounts.length){try{S.accounts=(await pl('GET','accounts')).accounts||[]}catch(e){}}
-    const sel=document.getElementById('logAcct');if(sel.options.length<=1)sel.innerHTML+=S.accounts.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(a.name)}</option>`).join('');
+    const sel=document.getElementById('logAcct');if(sel.options.length<=1)sel.innerHTML+=S.accounts.map(a=>`<option value="${esc(a.id)}">${BUILD_NAME[a.build]} · ${esc(acctLabel(a.id,a.name))}</option>`).join('');
     renderLogs(st)}catch(e){toast(e.message,true)}
 }
 function renderLogs(st){
